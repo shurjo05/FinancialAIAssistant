@@ -141,3 +141,35 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+
+# Claude Artifacts
+.claude
+
+# ---------------------------------------------------------------
+# Python / backend
+# ---------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# Secrets 
+.env
+backend/.env
+
+# Local database (may contain real financial data)
+*.db
+*.sqlite
+*.sqlite3
+finance.db
+
+# Uploaded user CSVs (privacy)
+backend/uploads/
