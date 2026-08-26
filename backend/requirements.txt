@@ -19,5 +19,11 @@ httpx>=0.27                   # talks to local Ollama
 google-generativeai>=0.7      # Gemini free tier (optional)
 # openai>=1.0                 # uncomment only if you use paid OpenAI
 
+# --- Machine learning (Phase B+) ---
+scikit-learn>=1.4
+joblib>=1.3
+datasets>=2.19          # HuggingFace dataset loader
+matplotlib>=3.8         # confusion-matrix rendering
+
 # --- Testing ---
 pytest>=8.0
