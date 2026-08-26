@@ -1,0 +1,36 @@
+Evaluation: merchant-disjoint split (test merchants unseen in training)
+train=56082  test=11918  train_merchants=6780  test_merchants=1695  overlap=0
+
+ML model (native 17 classes)
+  accuracy = 0.9576
+  macro-F1 = 0.9456
+
+Per-class report (native):
+                precision    recall  f1-score   support
+
+     Education       1.00      1.00      1.00      1007
+ Entertainment       1.00      0.98      0.99       834
+          Fees       1.00      1.00      1.00       719
+     Groceries       0.99      1.00      0.99       498
+    Healthcare       0.99      1.00      1.00       517
+        Income       0.81      0.46      0.59       675
+     Insurance       0.99      1.00      0.99      1399
+      Mortgage       0.90      1.00      0.95       726
+ Personal Care       1.00      1.00      1.00       538
+          Rent       1.00      1.00      1.00       150
+   Restaurants       0.97      1.00      0.98       773
+      Shopping       1.00      0.98      0.99       625
+  Subscription       0.90      0.98      0.94      1093
+      Transfer       0.59      0.77      0.67       324
+Transportation       1.00      1.00      1.00       711
+        Travel       1.00      1.00      1.00       460
+     Utilities       1.00      0.98      0.99       869
+
+      accuracy                           0.96     11918
+     macro avg       0.95      0.95      0.95     11918
+  weighted avg       0.96      0.96      0.95     11918
+
+
+Display-space comparison (13 app categories):
+  Rule baseline:  accuracy=0.3393  macro-F1=0.3018
+  ML model:       accuracy=0.9576  macro-F1=0.9300

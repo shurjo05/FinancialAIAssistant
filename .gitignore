@@ -173,3 +173,7 @@ finance.db
 
 # Uploaded user CSVs (privacy)
 backend/uploads/
+
+# ML model artifacts (large binaries) — metrics reports ARE committed
+backend/app/ml/artifacts/*.joblib
+backend/app/ml/artifacts/*.pkl

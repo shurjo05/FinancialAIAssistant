@@ -13,6 +13,13 @@ specific phrases beat generic ones ("amazon prime" -> subscriptions rather than
 transport).
 """
 
+from functools import lru_cache
+from pathlib import Path
+
+import joblib
+
+from app.ml.taxonomy import to_display
+
 # Display taxonomy for the app.
 CATEGORIES = [
     "income", "rent", "groceries", "restaurants", "subscriptions", "transport",
@@ -94,3 +101,79 @@ def categorize(description: str, bank_hint: str | None = None) -> tuple[str, flo
         return (bank_hint.strip().lower(), 0.40)
 
     return ("other", 0.0)
+
+
+# ---------------------------------------------------------------------------
+# Hybrid ML categorization (Phase B): trained model first, rules as fallback.
+# ---------------------------------------------------------------------------
+MODEL_PATH = Path(__file__).parent.parent / "ml" / "artifacts" / "categorizer.joblib"
+
+# Below this max-probability, we trust the rule layer instead of the model.
+CONFIDENCE_THRESHOLD = 0.50
+
+# Categories that are inherently money OUT. If a transaction is a credit
+# (money in) but the model predicted one of these, it is almost certainly
+# income the text model confused (income vs transfer/subscription is the
+# classifier's known weak spot). We override using the credit/debit signal,
+# which the text-only model never had access to.
+_EXPENSE_ONLY = {
+    "rent", "groceries", "restaurants", "subscriptions", "transport",
+    "utilities", "entertainment", "shopping", "health", "fees",
+}
+
+
+@lru_cache(maxsize=1)
+def _load_model():
+    """Load the trained pipeline once (cached). None if it hasn't been trained."""
+    if MODEL_PATH.exists():
+        return joblib.load(MODEL_PATH)
+    return None
+
+
+def _apply_credit_override(
+    category: str, confidence: float, transaction_type: str | None
+) -> tuple[str, float]:
+    """Correct expense-only predictions on money-in rows to income.
+
+    A credit (money received) cannot be a subscription/grocery/rent charge, so
+    such a prediction is a misclassified income row. Uses the credit/debit
+    signal from the parser that the text model doesn't see.
+    """
+    if transaction_type == "credit" and category in _EXPENSE_ONLY:
+        return ("income", max(confidence, 0.70))
+    return (category, confidence)
+
+
+def categorize_batch(
+    descriptions: list[str],
+    transaction_types: list[str] | None = None,
+) -> list[tuple[str, float]]:
+    """Categorize many descriptions: ML model where confident, rules otherwise.
+
+    Batched so the model vectorizes/predicts the whole upload in one pass.
+    If transaction_types are given, applies the credit/debit income override.
+    Returns (display_category, confidence) per description. With no trained
+    model present, falls back entirely to the rule categorizer.
+    """
+    model = _load_model()
+
+    base: list[tuple[str, float]]
+    if model is None:
+        base = [categorize(d) for d in descriptions]
+    else:
+        predictions = model.predict(descriptions)
+        confidences = model.predict_proba(descriptions).max(axis=1)
+        base = []
+        for description, native_label, confidence in zip(descriptions, predictions, confidences):
+            if confidence >= CONFIDENCE_THRESHOLD:
+                base.append((to_display(native_label), float(confidence)))
+            else:
+                base.append(categorize(description))  # low confidence -> rules
+
+    if transaction_types is None:
+        return base
+
+    return [
+        _apply_credit_override(cat, conf, ttype)
+        for (cat, conf), ttype in zip(base, transaction_types)
+    ]

@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.models import Transaction, Upload
 from app.schemas.schemas import UploadResult
-from app.services.categorizer import categorize
+from app.services.categorizer import categorize_batch
 from app.services.parser import parse_csv
 
 router = APIRouter(prefix="/api", tags=["upload"])
@@ -43,8 +43,14 @@ def upload_csv(file: UploadFile, db: Session = Depends(get_db)) -> UploadResult:
     db.add(upload)
     db.flush()  # assigns upload.id without committing yet
 
-    for r in rows:
-        category, confidence = categorize(r["description"])
+    # Categorize the whole file in one batched pass (ML model + rule fallback),
+    # passing transaction types so the credit/debit income override can apply.
+    categorized = categorize_batch(
+        [r["description"] for r in rows],
+        [r["transaction_type"] for r in rows],
+    )
+
+    for r, (category, confidence) in zip(rows, categorized):
         db.add(Transaction(
             upload_id=upload.id,
             date=r["date"],
