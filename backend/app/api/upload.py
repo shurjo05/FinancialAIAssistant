@@ -2,20 +2,25 @@
 
 import io
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.models.models import Transaction, Upload
 from app.schemas.schemas import UploadResult
 from app.services.categorizer import categorize_batch
+from app.services.detector import run_detectors
 from app.services.parser import parse_csv
 
 router = APIRouter(prefix="/api", tags=["upload"])
 
 
 @router.post("/upload", response_model=UploadResult)
-def upload_csv(file: UploadFile, db: Session = Depends(get_db)) -> UploadResult:
+def upload_csv(
+    file: UploadFile,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+) -> UploadResult:
     """Accept a bank CSV, parse and categorize it, and store the transactions."""
     if not file.filename or not file.filename.lower().endswith(".csv"):
         raise HTTPException(status_code=400, detail="Please upload a .csv file.")
@@ -64,6 +69,9 @@ def upload_csv(file: UploadFile, db: Session = Depends(get_db)) -> UploadResult:
 
     db.commit()
     db.refresh(upload)
+
+    # Run subscription + anomaly detection asynchronously so the response is fast.
+    background_tasks.add_task(run_detectors, upload.id)
 
     return UploadResult(
         upload_id=upload.id,

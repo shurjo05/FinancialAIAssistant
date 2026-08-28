@@ -56,3 +56,32 @@ class TransactionList(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class SubscriptionOut(BaseModel):
+    """A detected recurring payment."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    upload_id: int
+    merchant_normalized: str
+    amount: float
+    frequency: str
+    last_charged: datetime.date
+    occurrence_count: int
+    total_spent: float
+
+
+class AnomalyOut(BaseModel):
+    """A flagged unusual transaction."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    upload_id: int
+    transaction_id: int
+    anomaly_type: str
+    z_score: float | None
+    category: str
+    description: str

@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import transactions, upload
+from app.api import anomalies, subscriptions, transactions, upload
 from app.core.config import settings
 from app.core.database import Base, engine
 
@@ -49,3 +49,5 @@ def health_check():
 # Feature routers.
 app.include_router(upload.router)
 app.include_router(transactions.router)
+app.include_router(subscriptions.router)
+app.include_router(anomalies.router)

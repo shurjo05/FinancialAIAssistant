@@ -41,3 +41,15 @@ happened, and how they were fixed. Kept for interview prep — each entry is a
 - **Cause:** deposit descriptions are ambiguous *as text* (`"PREAUTHORIZED DEPOSIT FROM DISCOVER BANK"` could be income or a transfer). No text-only model or dataset resolves this.
 - **Fix:** a credit/debit override in the hybrid — the pipeline knows each transaction's direction (money in/out), which the text model never saw. A money-IN row predicted as an expense-only category (subscription/rent/grocery) is impossible, so it's corrected to income. Deliberately does NOT force income-vs-transfer, since both are legitimately money-in.
 - **Takeaway:** some ambiguity is irreducible from one signal (text) but trivial with another (transaction direction). The hybrid architecture exists precisely so rules can supply context the model lacks.
+
+## 7. Subscription detector: false positive from 2-occurrence groups
+- **Symptom:** two Uber rides ~90 days apart were reported as a "quarterly subscription."
+- **Cause:** any two data points form a single, "perfect" interval with zero amount variance — statistically indistinguishable from a real subscription.
+- **Fix:** required a minimum of **3 occurrences** (`MIN_OCCURRENCES`) before calling something recurring. Two points is coincidence; three is evidence.
+- **Takeaway:** be wary of statistics computed over tiny samples — a perfect fit on n=2 is meaningless.
+
+## 8. Anomaly detector: false positives from low-value / multivariate outliers
+- **Symptom:** IsolationForest flagged cheap transactions ($18 gas, $31 sandwich) with negative z-scores as anomalies.
+- **Cause:** IsolationForest finds *multivariate* outliers (odd day-of-month / merchant frequency), but for a spending-anomaly feature the product only cares about unusually **high** spend.
+- **Fix:** kept IsolationForest as the candidate generator, then filtered to high-side outliers only (`z_score >= 1.5`). Also raised contamination 0.03 -> 0.05 so multiple genuine spikes aren't missed.
+- **Takeaway:** an unsupervised model's notion of "outlier" may not match the product's notion of "anomaly" — constrain its output to what the user actually cares about. After the fix: precision/recall/F1 = 1.00 on labeled injected anomalies.

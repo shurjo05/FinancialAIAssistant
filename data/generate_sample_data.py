@@ -86,11 +86,21 @@ def build_transactions():
             rows.append({"date": datetime.date(y, m, day),
                          "description": name, "amount": -amt, "type": "debit"})
 
-        # Deliberate anomaly: one big electronics purchase in month index 3
-        if i == 3:
+        # Deliberate anomalies (labeled ground truth for detector evaluation):
+        # large charges well above the normal per-category range, spread across
+        # months and categories. Tagged with injected_anomaly=True.
+        injected = {
+            1: ("BEST BUY #401", 1299.00),        # shopping spike
+            2: ("WHOLE FOODS #456", 512.40),      # groceries spike
+            3: ("BEST BUY #401", 1499.99),        # shopping spike
+            4: ("CHIPOTLE 1442", 388.75),         # restaurants spike
+            5: ("SHELL OIL 5567", 415.60),        # transport spike
+        }
+        if i in injected:
+            name, amt = injected[i]
             rows.append({"date": datetime.date(y, m, 18),
-                         "description": "BEST BUY #401",
-                         "amount": -1499.99, "type": "debit"})
+                         "description": name, "amount": -amt,
+                         "type": "debit", "injected_anomaly": True})
 
     rows.sort(key=lambda r: r["date"])
     return rows

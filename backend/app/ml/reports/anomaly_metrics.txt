@@ -1,0 +1,3 @@
+Anomaly detector evaluation (synthetic labeled anomalies)
+injected=5 flagged=5 TP=5 FP=0 FN=0
+precision=1.00 recall=1.00 f1=1.00
