@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     ollama_host: str = "http://localhost:11434"
     ollama_model: str = "llama3.2"
     google_api_key: str = ""
+    google_model: str = "gemini-3.6-flash"
     openai_api_key: str = ""
 
     # Tells pydantic to read a .env file and ignore unknown keys.

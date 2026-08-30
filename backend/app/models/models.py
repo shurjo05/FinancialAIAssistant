@@ -71,6 +71,8 @@ class Subscription(Base):
     last_charged: Mapped[datetime.date]
     occurrence_count: Mapped[int]
     total_spent: Mapped[float]
+    category: Mapped[str] = mapped_column(default="other")
+    kind: Mapped[str] = mapped_column(default="subscription")  # 'subscription' | 'bill'
 
 
 class Anomaly(Base):

@@ -16,7 +16,7 @@ pydantic-settings>=2.0,<3.0
 
 # --- AI providers (all optional at runtime) ---
 httpx>=0.27                   # talks to local Ollama
-google-generativeai>=0.7      # Gemini free tier (optional)
+google-genai>=1.0             # Gemini (current Google Gen AI SDK)
 # openai>=1.0                 # uncomment only if you use paid OpenAI
 
 # --- Machine learning (Phase B+) ---

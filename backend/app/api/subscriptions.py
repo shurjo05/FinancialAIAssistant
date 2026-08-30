@@ -15,9 +15,16 @@ router = APIRouter(prefix="/api", tags=["subscriptions"])
 def list_subscriptions(
     db: Session = Depends(get_db),
     upload_id: int | None = None,
+    kind: str | None = None,  # 'subscription' or 'bill'
 ) -> list[Subscription]:
-    """Return detected subscriptions, most frequent first."""
-    query = select(Subscription).order_by(Subscription.occurrence_count.desc())
+    """Return detected recurring payments, largest amount first.
+
+    Filter by `kind` to split the "Subscriptions" tab (streaming/gym) from the
+    "Recurring Payments" tab (rent/utilities/insurance).
+    """
+    query = select(Subscription).order_by(Subscription.amount.desc())
     if upload_id is not None:
         query = query.where(Subscription.upload_id == upload_id)
+    if kind is not None:
+        query = query.where(Subscription.kind == kind)
     return list(db.scalars(query).all())

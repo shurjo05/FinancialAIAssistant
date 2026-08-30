@@ -71,6 +71,8 @@ class SubscriptionOut(BaseModel):
     last_charged: datetime.date
     occurrence_count: int
     total_spent: float
+    category: str
+    kind: str
 
 
 class AnomalyOut(BaseModel):
@@ -85,3 +87,17 @@ class AnomalyOut(BaseModel):
     z_score: float | None
     category: str
     description: str
+
+
+class QueryRequest(BaseModel):
+    """A natural-language question about the user's finances."""
+
+    question: str
+
+
+class QueryResponse(BaseModel):
+    """The grounded answer plus which provider and tools produced it."""
+
+    answer: str
+    provider: str
+    tools_used: list[str] = []

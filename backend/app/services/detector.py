@@ -37,6 +37,10 @@ MAX_AMOUNT_CV = 0.10
 # like a pair of coincidentally-spaced Uber rides). 3 = real evidence.
 MIN_OCCURRENCES = 3
 
+# Essential recurring obligations -> shown as "bills", kept out of the
+# "subscriptions" total so streaming/gym aren't lumped in with rent.
+BILL_CATEGORIES = {"rent", "utilities", "fees", "insurance"}
+
 # Anomaly guardrails: these categories are expected to be large/irregular, and
 # tiny amounts are never worth flagging.
 ANOMALY_SKIP_CATEGORIES = {"income", "transfers", "rent"}
@@ -89,6 +93,9 @@ def detect_subscriptions(
         if cv > MAX_AMOUNT_CV:
             continue
 
+        category = Counter(t.category for t in txns).most_common(1)[0][0]
+        kind = "bill" if category in BILL_CATEGORIES else "subscription"
+
         subscriptions.append({
             "merchant_normalized": merchant,
             "amount": round(mean_amount, 2),
@@ -96,6 +103,8 @@ def detect_subscriptions(
             "last_charged": max(t.date for t in txns),
             "occurrence_count": len(txns),
             "total_spent": round(sum(amounts), 2),
+            "category": category,
+            "kind": kind,
         })
         recurring_ids.update(t.id for t in txns)
 

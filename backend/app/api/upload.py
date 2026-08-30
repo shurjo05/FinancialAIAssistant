@@ -1,6 +1,7 @@
-"""CSV upload endpoint: parse -> categorize -> persist."""
+"""CSV upload endpoints: parse -> categorize -> persist. Plus a sample loader."""
 
 import io
+from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile
 from sqlalchemy.orm import Session
@@ -14,21 +15,12 @@ from app.services.parser import parse_csv
 
 router = APIRouter(prefix="/api", tags=["upload"])
 
+# Bundled sample CSV (repo_root/data/chase_sample.csv) for the demo button.
+SAMPLE_CSV = Path(__file__).resolve().parents[3] / "data" / "chase_sample.csv"
 
-@router.post("/upload", response_model=UploadResult)
-def upload_csv(
-    file: UploadFile,
-    background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
-) -> UploadResult:
-    """Accept a bank CSV, parse and categorize it, and store the transactions."""
-    if not file.filename or not file.filename.lower().endswith(".csv"):
-        raise HTTPException(status_code=400, detail="Please upload a .csv file.")
 
-    # Decode bytes to text; utf-8-sig strips a BOM if present.
-    raw_bytes = file.file.read()
-    text = raw_bytes.decode("utf-8-sig", errors="replace")
-
+def _ingest(db: Session, background_tasks: BackgroundTasks, filename: str, text: str) -> UploadResult:
+    """Shared pipeline: parse -> categorize -> persist -> schedule detectors."""
     rows, errors = parse_csv(io.StringIO(text))
     if not rows and errors:
         raise HTTPException(
@@ -36,10 +28,9 @@ def upload_csv(
             detail=f"Could not parse any rows: {errors[0]['issue']}",
         )
 
-    # Create the upload record first so transactions can reference its id.
     dates = [r["date"] for r in rows]
     upload = Upload(
-        filename=file.filename,
+        filename=filename,
         row_count=len(rows),
         date_range_start=min(dates) if dates else None,
         date_range_end=max(dates) if dates else None,
@@ -48,13 +39,10 @@ def upload_csv(
     db.add(upload)
     db.flush()  # assigns upload.id without committing yet
 
-    # Categorize the whole file in one batched pass (ML model + rule fallback),
-    # passing transaction types so the credit/debit income override can apply.
     categorized = categorize_batch(
         [r["description"] for r in rows],
         [r["transaction_type"] for r in rows],
     )
-
     for r, (category, confidence) in zip(rows, categorized):
         db.add(Transaction(
             upload_id=upload.id,
@@ -70,7 +58,7 @@ def upload_csv(
     db.commit()
     db.refresh(upload)
 
-    # Run subscription + anomaly detection asynchronously so the response is fast.
+    # Detection runs asynchronously so the response returns quickly.
     background_tasks.add_task(run_detectors, upload.id)
 
     return UploadResult(
@@ -83,3 +71,29 @@ def upload_csv(
         status=upload.status,
         errors=errors,
     )
+
+
+@router.post("/upload", response_model=UploadResult)
+def upload_csv(
+    file: UploadFile,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+) -> UploadResult:
+    """Accept a bank CSV, parse and categorize it, and store the transactions."""
+    if not file.filename or not file.filename.lower().endswith(".csv"):
+        raise HTTPException(status_code=400, detail="Please upload a .csv file.")
+
+    text = file.file.read().decode("utf-8-sig", errors="replace")
+    return _ingest(db, background_tasks, file.filename, text)
+
+
+@router.post("/load-sample", response_model=UploadResult)
+def load_sample(
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+) -> UploadResult:
+    """Load the bundled sample dataset so the app can be tried without a CSV."""
+    if not SAMPLE_CSV.exists():
+        raise HTTPException(status_code=404, detail="Sample data file not found.")
+    text = SAMPLE_CSV.read_text(encoding="utf-8-sig")
+    return _ingest(db, background_tasks, "sample_transactions.csv", text)

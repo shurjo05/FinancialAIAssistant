@@ -53,3 +53,20 @@ happened, and how they were fixed. Kept for interview prep — each entry is a
 - **Cause:** IsolationForest finds *multivariate* outliers (odd day-of-month / merchant frequency), but for a spending-anomaly feature the product only cares about unusually **high** spend.
 - **Fix:** kept IsolationForest as the candidate generator, then filtered to high-side outliers only (`z_score >= 1.5`). Also raised contamination 0.03 -> 0.05 so multiple genuine spikes aren't missed.
 - **Takeaway:** an unsupervised model's notion of "outlier" may not match the product's notion of "anomaly" — constrain its output to what the user actually cares about. After the fix: precision/recall/F1 = 1.00 on labeled injected anomalies.
+
+## 9. "Subscriptions" total inflated by rent (product taxonomy)
+- **Symptom:** the recurring-payment total read "$23,795/year in subscriptions" — dominated by an $1,800/mo rent charge.
+- **Cause:** the detector finds *recurring payments*; rent/utilities are recurring but users don't think of them as "subscriptions."
+- **Fix:** classify each recurring payment as `kind = "bill"` (rent/utilities/insurance/fees) or `"subscription"` (everything else) from its category, and split them into two tabs. Subscriptions now reads $52.97/mo; bills $1,930/mo.
+- **Takeaway:** detection and presentation are different concerns — the model can be "correct" while the framing misleads. Match categories to the user's mental model.
+
+## 10. AI query layer: provider-agnostic with a guaranteed floor
+- **Design:** `POST /api/query` answers NL questions via a provider chain — Gemini (function-calling) if a key is set, else a deterministic keyword engine — both calling the *same* data tools, so answers are always computed from the DB, never hallucinated.
+- **Why:** the app must work with zero API keys (portability/privacy), and the LLM must never invent financial figures. Tool-calling grounds every answer; the rule-based fallback guarantees the feature always works.
+- **Takeaway:** for AI features over real data, "grounded via tools" + "graceful degradation" beats "call the LLM and hope." Same pattern scales to Ollama (local/private) later.
+
+## 11. Retired model + live rate-limit fallback
+- **Symptom:** first live Gemini call returned `404: gemini-2.0-flash is no longer available`; later, some queries in a rapid batch silently returned rule-based answers.
+- **Cause:** (a) the pinned model name had been retired by Google; (b) the free tier's per-minute request limit was exceeded when firing several queries back-to-back (a multi-tool query makes several API round-trips).
+- **Fix:** (a) updated the default model to `gemini-3.6-flash` (env-configurable so future bumps need no code change); (b) no fix needed for rate limits — the provider chain caught the 429 and fell back to the rule-based engine, exactly as designed. Confirmed each query works via Gemini when called individually.
+- **Takeaway:** external model APIs change under you — keep the model name in config, not code. And graceful degradation isn't theoretical: the free-tier rate limit exercised the fallback path in a real run. For production, add retry/backoff + response caching.
