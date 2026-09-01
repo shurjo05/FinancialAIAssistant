@@ -33,7 +33,7 @@ def build_labeled_transactions() -> list[SimpleNamespace]:
     categories = categorize_batch(descriptions, types)
 
     transactions = []
-    for i, (row, (category, _conf)) in enumerate(zip(rows, categories)):
+    for i, (row, (category, _conf)) in enumerate(zip(rows, categories, strict=False)):
         transactions.append(SimpleNamespace(
             id=i,
             date=row["date"],

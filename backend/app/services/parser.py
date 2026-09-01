@@ -209,7 +209,7 @@ def parse_csv(file: "str | os.PathLike | IO[str]") -> tuple[list[dict], list[dic
                     "date": parse_date(row.get(columns["date"])),
                     "description": description,
                     "merchant_normalized": normalize_merchant(description),
-                    **dict(zip(("amount", "transaction_type"), normalize_amount(row, columns))),
+                    **dict(zip(("amount", "transaction_type"), normalize_amount(row, columns), strict=False)),
                 })
             except Exception as exc:  # noqa: BLE001 - one bad row must not abort
                 errors.append({"row": i, "issue": str(exc), "raw": str(row)})

@@ -164,7 +164,7 @@ def categorize_batch(
         predictions = model.predict(descriptions)
         confidences = model.predict_proba(descriptions).max(axis=1)
         base = []
-        for description, native_label, confidence in zip(descriptions, predictions, confidences):
+        for description, native_label, confidence in zip(descriptions, predictions, confidences, strict=False):
             if confidence >= CONFIDENCE_THRESHOLD:
                 base.append((to_display(native_label), float(confidence)))
             else:
@@ -175,5 +175,5 @@ def categorize_batch(
 
     return [
         _apply_credit_override(cat, conf, ttype)
-        for (cat, conf), ttype in zip(base, transaction_types)
+        for (cat, conf), ttype in zip(base, transaction_types, strict=False)
     ]

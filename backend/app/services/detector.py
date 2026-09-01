@@ -149,7 +149,7 @@ def detect_anomalies(transactions: list[Transaction]) -> list[dict]:
     predictions = model.fit_predict(features)
 
     anomalies: list[dict] = []
-    for t, prediction in zip(candidates, predictions):
+    for t, prediction in zip(candidates, predictions, strict=False):
         if prediction != -1:
             continue
         z = zscore(t)

@@ -43,7 +43,7 @@ def _ingest(db: Session, background_tasks: BackgroundTasks, filename: str, text:
         [r["description"] for r in rows],
         [r["transaction_type"] for r in rows],
     )
-    for r, (category, confidence) in zip(rows, categorized):
+    for r, (category, confidence) in zip(rows, categorized, strict=False):
         db.add(Transaction(
             upload_id=upload.id,
             date=r["date"],
