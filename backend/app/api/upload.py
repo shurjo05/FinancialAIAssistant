@@ -7,7 +7,8 @@ from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFi
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models.models import Transaction, Upload
+from app.core.deps import get_current_user
+from app.models.models import Transaction, Upload, User
 from app.schemas.schemas import UploadResult
 from app.services.categorizer import categorize_batch
 from app.services.detector import run_detectors
@@ -19,7 +20,9 @@ router = APIRouter(prefix="/api", tags=["upload"])
 SAMPLE_CSV = Path(__file__).resolve().parents[3] / "data" / "chase_sample.csv"
 
 
-def _ingest(db: Session, background_tasks: BackgroundTasks, filename: str, text: str) -> UploadResult:
+def _ingest(
+    db: Session, background_tasks: BackgroundTasks, user_id: int, filename: str, text: str
+) -> UploadResult:
     """Shared pipeline: parse -> categorize -> persist -> schedule detectors."""
     rows, errors = parse_csv(io.StringIO(text))
     if not rows and errors:
@@ -30,6 +33,7 @@ def _ingest(db: Session, background_tasks: BackgroundTasks, filename: str, text:
 
     dates = [r["date"] for r in rows]
     upload = Upload(
+        user_id=user_id,
         filename=filename,
         row_count=len(rows),
         date_range_start=min(dates) if dates else None,
@@ -46,6 +50,7 @@ def _ingest(db: Session, background_tasks: BackgroundTasks, filename: str, text:
     for r, (category, confidence) in zip(rows, categorized, strict=False):
         db.add(Transaction(
             upload_id=upload.id,
+            user_id=user_id,
             date=r["date"],
             description=r["description"],
             merchant_normalized=r["merchant_normalized"],
@@ -78,22 +83,24 @@ def upload_csv(
     file: UploadFile,
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> UploadResult:
     """Accept a bank CSV, parse and categorize it, and store the transactions."""
     if not file.filename or not file.filename.lower().endswith(".csv"):
         raise HTTPException(status_code=400, detail="Please upload a .csv file.")
 
     text = file.file.read().decode("utf-8-sig", errors="replace")
-    return _ingest(db, background_tasks, file.filename, text)
+    return _ingest(db, background_tasks, user.id, file.filename, text)
 
 
 @router.post("/load-sample", response_model=UploadResult)
 def load_sample(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
 ) -> UploadResult:
     """Load the bundled sample dataset so the app can be tried without a CSV."""
     if not SAMPLE_CSV.exists():
         raise HTTPException(status_code=404, detail="Sample data file not found.")
     text = SAMPLE_CSV.read_text(encoding="utf-8-sig")
-    return _ingest(db, background_tasks, "sample_transactions.csv", text)
+    return _ingest(db, background_tasks, user.id, "sample_transactions.csv", text)

@@ -18,7 +18,7 @@ from sklearn.ensemble import IsolationForest
 from sqlalchemy import delete, select
 
 from app.core.database import SessionLocal
-from app.models.models import Anomaly, Subscription, Transaction
+from app.models.models import Anomaly, Subscription, Transaction, Upload
 
 # (target_days, tolerance, label) — a median interval within tolerance matches.
 INTERVAL_BUCKETS = [
@@ -177,6 +177,11 @@ def run_detectors(upload_id: int) -> None:
     """
     db = SessionLocal()
     try:
+        upload = db.get(Upload, upload_id)
+        if upload is None:
+            return
+        user_id = upload.user_id
+
         transactions = db.scalars(
             select(Transaction).where(Transaction.upload_id == upload_id)
         ).all()
@@ -192,9 +197,9 @@ def run_detectors(upload_id: int) -> None:
         db.execute(delete(Anomaly).where(Anomaly.upload_id == upload_id))
 
         for record in subscriptions:
-            db.add(Subscription(upload_id=upload_id, **record))
+            db.add(Subscription(upload_id=upload_id, user_id=user_id, **record))
         for record in anomalies:
-            db.add(Anomaly(upload_id=upload_id, **record))
+            db.add(Anomaly(upload_id=upload_id, user_id=user_id, **record))
 
         for t in transactions:
             t.is_recurring = t.id in recurring_ids

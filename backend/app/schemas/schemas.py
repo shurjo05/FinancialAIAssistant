@@ -7,7 +7,30 @@ from an ORM object (e.g. TransactionOut.model_validate(transaction_row)).
 
 import datetime
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, EmailStr
+
+
+class UserCreate(BaseModel):
+    """Registration / login payload."""
+
+    email: EmailStr
+    password: str
+
+
+class UserOut(BaseModel):
+    """A user as returned by the API (never includes the password hash)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    email: EmailStr
+
+
+class Token(BaseModel):
+    """A JWT access token."""
+
+    access_token: str
+    token_type: str = "bearer"
 
 
 class ParseError(BaseModel):

@@ -46,14 +46,14 @@ def _detect_month(text: str, year: int) -> str | None:
     return None
 
 
-def fallback_answer(db: Session, question: str) -> tuple[str, list[str]]:
+def fallback_answer(db: Session, user_id: int, question: str) -> tuple[str, list[str]]:
     """Deterministic keyword-based answer. Returns (answer_text, tools_used)."""
     q = question.lower()
-    rng = tools.date_range(db)
+    rng = tools.date_range(db, user_id)
     year = int(rng["start"][:4]) if rng["start"] else 2024
 
     if "bill" in q or "recurring payment" in q:
-        d = tools.list_recurring_bills(db)
+        d = tools.list_recurring_bills(db, user_id)
         return (
             f"You have {d['count']} recurring bills totaling "
             f"${d['monthly_cost']:,.2f}/month (${d['annual_cost']:,.2f}/year).",
@@ -61,7 +61,7 @@ def fallback_answer(db: Session, question: str) -> tuple[str, list[str]]:
         )
 
     if "subscription" in q or "recurring" in q:
-        d = tools.list_subscriptions(db)
+        d = tools.list_subscriptions(db, user_id)
         return (
             f"You have {d['count']} subscriptions totaling "
             f"${d['monthly_cost']:,.2f}/month (${d['annual_cost']:,.2f}/year).",
@@ -69,7 +69,7 @@ def fallback_answer(db: Session, question: str) -> tuple[str, list[str]]:
         )
 
     if any(w in q for w in ("anomal", "unusual", "weird", "suspicious", "spike")):
-        d = tools.list_anomalies(db)
+        d = tools.list_anomalies(db, user_id)
         if not d["count"]:
             return ("I didn't find any unusual transactions.", ["list_anomalies"])
         top = d["anomalies"][0]["description"]
@@ -77,7 +77,7 @@ def fallback_answer(db: Session, question: str) -> tuple[str, list[str]]:
                 ["list_anomalies"])
 
     if "top" in q and "merchant" in q:
-        d = tools.top_merchants(db, n=5)
+        d = tools.top_merchants(db, user_id, n=5)
         listing = "; ".join(f"{m['merchant']} (${m['total']:,.2f})" for m in d["merchants"])
         return (f"Your top merchants by spend: {listing}.", ["top_merchants"])
 
@@ -90,26 +90,26 @@ def fallback_answer(db: Session, question: str) -> tuple[str, list[str]]:
         start, end, month_label = lo.isoformat(), hi.isoformat(), f" in {calendar.month_name[int(month[5:7])]}"
 
     if any(w in q for w in ("income", "earn", "made", "paid", "salary")):
-        d = tools.get_total(db, "income", start, end)
+        d = tools.get_total(db, user_id, "income", start, end)
         return (f"Your total income{month_label} was ${d['total']:,.2f}.", ["get_total"])
 
     if category:
-        d = tools.get_spending_by_category(db, category, start, end)
+        d = tools.get_spending_by_category(db, user_id, category, start, end)
         return (f"You spent ${d['total']:,.2f} on {category}{month_label} "
                 f"across {d['count']} transactions.", ["get_spending_by_category"])
 
-    d = tools.get_total(db, "spending", start, end)
+    d = tools.get_total(db, user_id, "spending", start, end)
     return (f"Your total spending{month_label} was ${d['total']:,.2f}.", ["get_total"])
 
 
-def answer_query(db: Session, question: str) -> dict:
-    """Answer a question, preferring Gemini and falling back to rules."""
+def answer_query(db: Session, user_id: int, question: str) -> dict:
+    """Answer a question for one user, preferring Gemini and falling back to rules."""
     if settings.google_api_key:
         try:
             from app.services.gemini_provider import gemini_answer
-            return gemini_answer(db, question)
+            return gemini_answer(db, user_id, question)
         except Exception:
             pass  # any Gemini failure -> deterministic fallback
 
-    answer, tools_used = fallback_answer(db, question)
+    answer, tools_used = fallback_answer(db, user_id, question)
     return {"answer": answer, "provider": "rule-based", "tools_used": tools_used}

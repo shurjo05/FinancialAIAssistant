@@ -16,6 +16,12 @@ class Settings(BaseSettings):
     # CORS: the origin the React dev server runs on.
     frontend_origin: str = "http://localhost:5173"
 
+    # --- Auth (JWT) ---
+    # Dev default only; production MUST override JWT_SECRET via the environment.
+    jwt_secret: str = "dev-insecure-change-me"
+    jwt_algorithm: str = "HS256"
+    access_token_expire_minutes: int = 60 * 24  # 24h
+
     # --- AI providers (all optional; blank = disabled) ---
     ollama_host: str = "http://localhost:11434"
     ollama_model: str = "llama3.2"

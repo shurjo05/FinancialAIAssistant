@@ -7,7 +7,7 @@ by Alembic migrations (`alembic upgrade head`), not created on startup.
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import analytics, anomalies, query, subscriptions, transactions, upload
+from app.api import analytics, anomalies, auth, query, subscriptions, transactions, upload
 from app.core.config import settings
 
 app = FastAPI(title="Personal Finance AI Assistant")
@@ -29,6 +29,7 @@ def health_check():
 
 
 # Feature routers.
+app.include_router(auth.router)
 app.include_router(upload.router)
 app.include_router(transactions.router)
 app.include_router(subscriptions.router)

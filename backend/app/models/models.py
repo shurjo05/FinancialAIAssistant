@@ -16,12 +16,24 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
 
+class User(Base):
+    """An account. Owns uploads and all data derived from them."""
+
+    __tablename__ = "users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    email: Mapped[str] = mapped_column(unique=True, index=True)
+    hashed_password: Mapped[str]
+    created_at: Mapped[datetime.datetime] = mapped_column(server_default=func.now())
+
+
 class Upload(Base):
     """A single CSV import. Parent of every transaction it produced."""
 
     __tablename__ = "uploads"
 
     id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     filename: Mapped[str]
     # Timestamp is populated by the database on insert.
     uploaded_at: Mapped[datetime.datetime] = mapped_column(server_default=func.now())
@@ -43,6 +55,7 @@ class Transaction(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     upload_id: Mapped[int] = mapped_column(ForeignKey("uploads.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     date: Mapped[datetime.date]
     description: Mapped[str]              # raw merchant string from the CSV
     merchant_normalized: Mapped[str]     # cleaned merchant name
@@ -65,6 +78,7 @@ class Subscription(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     upload_id: Mapped[int] = mapped_column(ForeignKey("uploads.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     merchant_normalized: Mapped[str]
     amount: Mapped[float]                 # typical charge amount
     frequency: Mapped[str]               # 'weekly' | 'monthly' | 'annual' | ...
@@ -82,6 +96,7 @@ class Anomaly(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     upload_id: Mapped[int] = mapped_column(ForeignKey("uploads.id"))
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     transaction_id: Mapped[int] = mapped_column(ForeignKey("transactions.id"))
     anomaly_type: Mapped[str]            # 'spike' | 'unusual_merchant' | 'large_single'
     z_score: Mapped[float | None]        # null for methods that don't produce one (e.g. IQR)
