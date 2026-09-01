@@ -60,3 +60,35 @@ def db():
 @pytest.fixture
 def sample_csv() -> str:
     return str(DATA_DIR / "chase_sample.csv")
+
+
+@pytest.fixture
+def user(db):
+    """A persisted user, for tests that call user-scoped services directly."""
+    from app.core.security import hash_password
+    from app.models.models import User
+
+    u = User(email="direct@example.com", hashed_password=hash_password("pw123456"))
+    db.add(u)
+    db.commit()
+    db.refresh(u)
+    return u
+
+
+@pytest.fixture
+def auth_token(client):
+    """Factory: register + login an email, return its bearer token."""
+    def _make(email: str, password: str = "pw123456") -> str:
+        client.post("/api/auth/register", json={"email": email, "password": password})
+        resp = client.post("/api/auth/login", data={"username": email, "password": password})
+        return resp.json()["access_token"]
+
+    return _make
+
+
+@pytest.fixture
+def auth_client(client, auth_token):
+    """A TestClient pre-authenticated as a single default user."""
+    token = auth_token("user@example.com")
+    client.headers.update({"Authorization": f"Bearer {token}"})
+    return client

@@ -5,7 +5,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
-from app.models.models import Anomaly
+from app.core.deps import get_current_user
+from app.models.models import Anomaly, User
 from app.schemas.schemas import AnomalyOut
 
 router = APIRouter(prefix="/api", tags=["anomalies"])
@@ -14,10 +15,15 @@ router = APIRouter(prefix="/api", tags=["anomalies"])
 @router.get("/anomalies", response_model=list[AnomalyOut])
 def list_anomalies(
     db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
     upload_id: int | None = None,
 ) -> list[Anomaly]:
-    """Return detected anomalies, largest z-score first."""
-    query = select(Anomaly).order_by(Anomaly.z_score.desc())
+    """Return this user's detected anomalies, largest z-score first."""
+    query = (
+        select(Anomaly)
+        .where(Anomaly.user_id == user.id)
+        .order_by(Anomaly.z_score.desc())
+    )
     if upload_id is not None:
         query = query.where(Anomaly.upload_id == upload_id)
     return list(db.scalars(query).all())
