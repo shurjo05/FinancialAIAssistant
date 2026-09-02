@@ -1,0 +1,38 @@
+{
+  "model_version": "1",
+  "release_tag": "model-v1",
+  "artifact": "categorizer.joblib",
+  "sha256": "9c86933b011ad536402d90af88e74dabbec5c203774d91b2b521bfc5d8500d7e",
+  "size_bytes": 8730052,
+  "model_type": "TF-IDF (word + char n-grams) -> LogisticRegression",
+  "framework": {
+    "scikit_learn": "1.9.0",
+    "python": "3.11",
+    "joblib": "1.5.3"
+  },
+  "training_data": {
+    "dataset": "DoDataThings/us-bank-transaction-categories-v2",
+    "license": "MIT",
+    "rows_total": 68000,
+    "train_rows": 56082,
+    "test_rows": 11918,
+    "split": "merchant-disjoint (GroupShuffleSplit by merchant key)",
+    "train_merchants": 6780,
+    "test_merchants": 1695,
+    "merchant_overlap": 0
+  },
+  "evaluation": {
+    "native_17_class": { "accuracy": 0.9576, "macro_f1": 0.9456 },
+    "display_13_class": { "accuracy": 0.9576, "macro_f1": 0.93 },
+    "rule_baseline_display": { "accuracy": 0.3393, "macro_f1": 0.3018 },
+    "known_weak_spot": "Income recall 0.46 (income vs transfer is text-ambiguous); mitigated at inference by the credit/debit override"
+  },
+  "inference": {
+    "confidence_threshold": 0.5,
+    "below_threshold": "fall back to the rule-based categorizer",
+    "credit_debit_override": true
+  },
+  "trained_at": "2026-08-26",
+  "git_commit": "9cc5974",
+  "notes": "Metrics recorded from backend/app/ml/reports/metrics.txt. display_13_class is the app-facing number (13 display categories). Anomaly metrics live separately in reports/anomaly_metrics.txt."
+}
