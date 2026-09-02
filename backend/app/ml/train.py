@@ -3,6 +3,7 @@
 Pipeline: TF-IDF (word + char n-grams) -> LogisticRegression, trained on the
 dataset's native 17-category taxonomy. Produces:
   - artifacts/categorizer.joblib   the trained pipeline (used at inference)
+  - model_metadata.json            provenance: version, metrics, sha256, commit
   - reports/confusion_matrix.png   native-taxonomy confusion matrix
   - reports/metrics.txt            accuracy / macro-F1 / per-class report +
                                    the rules-vs-ML comparison in display space
@@ -11,10 +12,16 @@ Run:
     python -m app.ml.train
 """
 
+import datetime
+import hashlib
+import json
+import subprocess
+import sys
 from pathlib import Path
 
 import joblib
 import matplotlib
+import sklearn
 
 matplotlib.use("Agg")  # headless backend: render to file, no window
 import matplotlib.pyplot as plt
@@ -34,6 +41,28 @@ from app.services.categorizer import categorize
 ARTIFACTS_DIR = Path(__file__).parent / "artifacts"
 REPORTS_DIR = Path(__file__).parent / "reports"
 MODEL_PATH = ARTIFACTS_DIR / "categorizer.joblib"
+METADATA_PATH = Path(__file__).parent / "model_metadata.json"
+DATASET = "DoDataThings/us-bank-transaction-categories-v2"
+
+
+def _git_commit() -> str | None:
+    """Best-effort short SHA of the current commit; None outside a git checkout."""
+    try:
+        out = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            capture_output=True, text=True, cwd=Path(__file__).parent, check=True,
+        )
+        return out.stdout.strip() or None
+    except (OSError, subprocess.CalledProcessError):
+        return None
+
+
+def _sha256(path: Path) -> str:
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for chunk in iter(lambda: f.read(1 << 20), b""):
+            h.update(chunk)
+    return h.hexdigest()
 
 
 def build_pipeline() -> Pipeline:
@@ -97,6 +126,52 @@ def main() -> None:
     # --- Persist model + reports ---
     joblib.dump(pipe, MODEL_PATH)
     print(f"Saved model -> {MODEL_PATH}")
+
+    # Refresh the provenance record. Preserve the release identity
+    # (model_version / release_tag) if one is already set — bump those by hand
+    # when you cut a new release — and update everything measurable here.
+    prior = {}
+    if METADATA_PATH.exists():
+        try:
+            prior = json.loads(METADATA_PATH.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            prior = {}
+    metadata = {
+        "model_version": prior.get("model_version", "1"),
+        "release_tag": prior.get("release_tag", "model-v1"),
+        "artifact": MODEL_PATH.name,
+        "sha256": _sha256(MODEL_PATH),
+        "size_bytes": MODEL_PATH.stat().st_size,
+        "model_type": "TF-IDF (word + char n-grams) -> LogisticRegression",
+        "framework": {
+            "scikit_learn": sklearn.__version__,
+            "python": ".".join(map(str, sys.version_info[:2])),
+            "joblib": joblib.__version__,
+        },
+        "training_data": {
+            "dataset": DATASET,
+            "license": "MIT",
+            "rows_total": len(X_train) + len(X_test),
+            "train_rows": len(X_train),
+            "test_rows": len(X_test),
+            "split": "merchant-disjoint (GroupShuffleSplit by merchant key)",
+            "train_merchants": len(train_merchants),
+            "test_merchants": len(test_merchants),
+            "merchant_overlap": len(overlap),
+        },
+        "evaluation": {
+            "native_17_class": {"accuracy": round(acc, 4), "macro_f1": round(macro_f1, 4)},
+            "display_13_class": {"accuracy": round(ml_acc, 4), "macro_f1": round(ml_f1, 4)},
+            "rule_baseline_display": {"accuracy": round(rules_acc, 4), "macro_f1": round(rules_f1, 4)},
+        },
+        "inference": {"confidence_threshold": 0.5, "credit_debit_override": True},
+        "trained_at": datetime.date.today().isoformat(),
+        "git_commit": _git_commit(),
+    }
+    METADATA_PATH.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+    print(f"Saved metadata -> {METADATA_PATH} "
+          f"(version {metadata['model_version']}, tag {metadata['release_tag']})")
+    print("  If this is a NEW release, bump model_version/release_tag and re-publish the asset.")
 
     (REPORTS_DIR / "metrics.txt").write_text(
         f"Evaluation: merchant-disjoint split (test merchants unseen in training)\n"

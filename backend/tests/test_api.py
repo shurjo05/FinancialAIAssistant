@@ -2,7 +2,22 @@
 
 
 def test_health_is_public(client):
-    assert client.get("/api/health").json() == {"status": "ok"}
+    body = client.get("/api/health").json()
+    assert body["status"] == "ok"
+
+    # Health also reports which categorizer is active. The model artifact is
+    # gitignored (absent in CI, present locally), so assert the shape — and the
+    # version only when a model is actually loaded — not a fixed loaded state.
+    cat = body["categorizer"]
+    assert isinstance(cat["model_loaded"], bool)
+    assert cat["mode"] in {"ml+rules", "rules-only"}
+    if cat["model_loaded"]:
+        assert cat["mode"] == "ml+rules"
+        assert cat["model_version"] == "1"
+        assert cat["release_tag"] == "model-v1"
+    else:
+        assert cat["mode"] == "rules-only"
+        assert cat["model_version"] is None
 
 
 def test_protected_endpoint_requires_auth(client):

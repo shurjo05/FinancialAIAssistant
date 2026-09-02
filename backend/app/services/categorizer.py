@@ -13,6 +13,7 @@ specific phrases beat generic ones ("amazon prime" -> subscriptions rather than
 transport).
 """
 
+import json
 from functools import lru_cache
 from pathlib import Path
 
@@ -107,6 +108,7 @@ def categorize(description: str, bank_hint: str | None = None) -> tuple[str, flo
 # Hybrid ML categorization (Phase B): trained model first, rules as fallback.
 # ---------------------------------------------------------------------------
 MODEL_PATH = Path(__file__).parent.parent / "ml" / "artifacts" / "categorizer.joblib"
+METADATA_PATH = Path(__file__).parent.parent / "ml" / "model_metadata.json"
 
 # Below this max-probability, we trust the rule layer instead of the model.
 CONFIDENCE_THRESHOLD = 0.50
@@ -128,6 +130,29 @@ def _load_model():
     if MODEL_PATH.exists():
         return joblib.load(MODEL_PATH)
     return None
+
+
+@lru_cache(maxsize=1)
+def _load_metadata() -> dict | None:
+    """Load the model's provenance record, if present."""
+    if METADATA_PATH.exists():
+        try:
+            return json.loads(METADATA_PATH.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return None
+    return None
+
+
+def model_info() -> dict:
+    """Provenance of the active categorizer, for /api/health and observability."""
+    meta = _load_metadata() or {}
+    loaded = _load_model() is not None
+    return {
+        "model_loaded": loaded,
+        "mode": "ml+rules" if loaded else "rules-only",
+        "model_version": meta.get("model_version") if loaded else None,
+        "release_tag": meta.get("release_tag") if loaded else None,
+    }
 
 
 def _apply_credit_override(

@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import analytics, anomalies, auth, query, subscriptions, transactions, upload
 from app.core.config import settings
+from app.services.categorizer import model_info
 
 app = FastAPI(title="Personal Finance AI Assistant")
 
@@ -24,8 +25,8 @@ app.add_middleware(
 
 @app.get("/api/health")
 def health_check():
-    """Simple liveness probe used to confirm the API is running."""
-    return {"status": "ok"}
+    """Liveness probe; also reports which categorizer model is loaded."""
+    return {"status": "ok", "categorizer": model_info()}
 
 
 # Feature routers.
