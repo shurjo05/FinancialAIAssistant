@@ -10,8 +10,14 @@ import tempfile
 from pathlib import Path
 
 # Must run before any `app.*` import so settings bind to the test DB.
-_TMP_DIR = tempfile.mkdtemp()
-os.environ["DATABASE_URL"] = f"sqlite:///{Path(_TMP_DIR, 'test.db').as_posix()}"
+# Default: an isolated temp SQLite DB — fast, zero-setup inner loop.
+# Override with TEST_DATABASE_URL (e.g. a Postgres container) to run the same
+# suite against another backend and prove dialect portability.
+_TEST_DB_URL = os.environ.get("TEST_DATABASE_URL")
+if not _TEST_DB_URL:
+    _TMP_DIR = tempfile.mkdtemp()
+    _TEST_DB_URL = f"sqlite:///{Path(_TMP_DIR, 'test.db').as_posix()}"
+os.environ["DATABASE_URL"] = _TEST_DB_URL
 os.environ["GOOGLE_API_KEY"] = ""  # force deterministic rule-based query path
 
 import pytest  # noqa: E402

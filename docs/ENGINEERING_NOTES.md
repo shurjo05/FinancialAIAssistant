@@ -82,3 +82,9 @@ happened, and how they were fixed. Kept for interview prep — each entry is a
 - **Cause:** passlib 1.7.x (effectively unmaintained) reads `bcrypt.__about__.__version__`, which bcrypt 4.1+ removed.
 - **Fix:** dropped passlib and called the well-maintained `bcrypt` library directly (`hashpw`/`checkpw`), truncating to bcrypt's 72-byte limit explicitly so long inputs don't raise.
 - **Takeaway:** a thin, well-maintained dependency beats a heavier abstraction that has gone stale. Prefer the primitive when the wrapper adds fragility, not value.
+
+## 14. "Configurable for Postgres" wasn't the same as "portable"
+- **Symptom:** the app read `DATABASE_URL` and looked Postgres-ready, but one query (`monthly_trend`) called `func.strftime("%Y-%m", ...)` — a SQLite-only function that would crash on the production Postgres.
+- **Cause:** being *configurable* (swap the URL) is not the same as being *portable* (the SQL actually runs on the other engine). SQLite silently tolerated a dialect-specific call that Postgres doesn't have.
+- **Fix:** replaced `strftime` with SQLAlchemy's dialect-agnostic `extract('year'/'month', ...)` — SQLAlchemy compiles it to `STRFTIME` on SQLite and `EXTRACT` on Postgres — grouping numerically and formatting the `YYYY-MM` label in Python. Then made the split *verifiable*: SQLite stays the fast default for the inner loop, but a CI job runs the **same** suite against a real `postgres:16` service container (`TEST_DATABASE_URL`), plus a migrations job that applies the Alembic chain to a fresh Postgres and runs `alembic check` for model/migration drift.
+- **Takeaway:** parity you don't test is parity you don't have. Keep the fast local database, but gate merges on the production dialect so "works on my SQLite" can't reach prod.

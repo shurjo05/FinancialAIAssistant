@@ -6,6 +6,7 @@ python-multipart>=0.0.9        # required for file uploads
 # --- Database ---
 SQLAlchemy>=2.0,<3.0
 alembic>=1.13          # schema migrations
+psycopg[binary]>=3.1   # PostgreSQL driver (postgresql+psycopg://); [binary] = prebuilt wheels
 
 # --- Data pipeline ---
 pandas>=2.2,<3.0

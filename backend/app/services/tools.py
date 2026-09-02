@@ -11,7 +11,7 @@ Amount convention (from the parser): amount > 0 = expense, amount < 0 = income.
 import calendar
 import datetime
 
-from sqlalchemy import case, func, select
+from sqlalchemy import case, extract, func, select
 from sqlalchemy.orm import Session
 
 from app.models.models import Anomaly, Subscription, Transaction
@@ -193,17 +193,27 @@ def list_anomalies(db: Session, user_id: int) -> dict:
 
 def monthly_trend(db: Session, user_id: int) -> list[dict]:
     """Spending and income totalled per calendar month (for the trend chart)."""
-    # strftime is SQLite-specific; fine for this project's dev database.
-    ym = func.strftime("%Y-%m", Transaction.date)
+    # extract() is dialect-agnostic: SQLAlchemy compiles it to STRFTIME on
+    # SQLite and EXTRACT on Postgres, so this one query works on both. We group
+    # by (year, month) numerically and format the "YYYY-MM" label in Python.
+    year = extract("year", Transaction.date)
+    month = extract("month", Transaction.date)
     rows = db.execute(
         select(
-            ym.label("month"),
+            year.label("year"),
+            month.label("month"),
             func.sum(case((Transaction.amount > 0, Transaction.amount), else_=0.0)),
             func.sum(case((Transaction.amount < 0, -Transaction.amount), else_=0.0)),
-        ).where(Transaction.user_id == user_id).group_by(ym).order_by(ym)
+        )
+        .where(Transaction.user_id == user_id)
+        .group_by(year, month)
+        .order_by(year, month)
     ).all()
-    return [{"month": m, "spending": round(s or 0, 2), "income": round(i or 0, 2)}
-            for m, s, i in rows]
+    return [
+        {"month": f"{int(y):04d}-{int(mo):02d}",
+         "spending": round(s or 0, 2), "income": round(i or 0, 2)}
+        for y, mo, s, i in rows
+    ]
 
 
 def summary(db: Session, user_id: int) -> dict:
