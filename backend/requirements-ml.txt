@@ -1,0 +1,9 @@
+# Training / evaluation dependencies — NOT needed to run the app in production.
+# Only app/ml/{train,dataset,eval_anomaly}.py import these; the inference
+# runtime (categorizer loading the joblib) does not. Kept out of the prod image.
+# Installed locally + in CI via requirements-dev.txt.
+
+-r requirements.txt
+
+datasets>=2.19          # HuggingFace dataset loader (training data)
+matplotlib>=3.8         # confusion-matrix rendering

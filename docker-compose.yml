@@ -1,0 +1,38 @@
+# Local full-stack: the single-service app + Postgres.
+#   docker compose up --build   ->  http://localhost:8000
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: finance
+      POSTGRES_PASSWORD: finance
+      POSTGRES_DB: finance
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U finance"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg://finance:finance@db:5432/finance
+      JWT_SECRET: dev-compose-secret-change-me
+      FRONTEND_ORIGIN: http://localhost:8000
+      # GOOGLE_API_KEY: ""   # optional; empty -> deterministic rule-based query
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    # Apply migrations, then start the server (single-service serves API + SPA).
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+
+volumes:
+  pgdata:

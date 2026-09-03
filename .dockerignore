@@ -1,0 +1,28 @@
+# Keep the build context small and reproducible.
+.git
+.github
+.claude
+.venv
+**/__pycache__
+**/*.pyc
+
+# Node / build outputs (frontend is rebuilt inside the image)
+frontend/node_modules
+frontend/dist
+
+# Local databases and env
+**/*.db
+**/.env
+backend/.env
+
+# Force the image to fetch the pinned model from its Release (proves that path)
+backend/app/ml/artifacts/
+
+# Docs, data we don't need in the image (sample CSVs ARE copied explicitly)
+docs
+*.md
+
+# Editor / OS cruft
+.vscode
+.idea
+.DS_Store
