@@ -26,10 +26,10 @@ httpx>=0.27                   # talks to local Ollama
 google-genai>=1.0             # Gemini (current Google Gen AI SDK)
 # openai>=1.0                 # uncomment only if you use paid OpenAI
 
-# --- Machine learning (Phase B+) ---
-scikit-learn>=1.4
-joblib>=1.3
-datasets>=2.19          # HuggingFace dataset loader
-matplotlib>=3.8         # confusion-matrix rendering
+# --- Machine learning: inference runtime only ---
+scikit-learn>=1.4      # required to unpickle + run the trained pipeline
+joblib>=1.3            # model (de)serialization
 
+# Training-only deps (datasets, matplotlib) live in requirements-ml.txt and are
+# NOT installed in the production image — the runtime never imports them.
 # Dev/test tooling lives in requirements-dev.txt (pytest, ruff).

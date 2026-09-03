@@ -1,7 +1,9 @@
 # Development + CI tooling (not needed to run the app in production).
 # Install with:  pip install -r requirements-dev.txt
+# Pulls in the ML training stack too (which itself pulls in requirements.txt),
+# so local dev + CI can train, evaluate, and run the tests.
 
--r requirements.txt
+-r requirements-ml.txt
 
 pytest>=8.0
 ruff>=0.6
