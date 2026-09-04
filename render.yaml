@@ -1,0 +1,28 @@
+# Render Blueprint: one Docker web service (single-service — serves API + SPA).
+# Postgres is external (Neon), supplied via the DATABASE_URL secret below.
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: finance-ai
+    runtime: docker
+    plan: free
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .                 # repo root — image needs frontend/, backend/, data/
+    healthCheckPath: /api/health
+    autoDeploy: true                 # merge to main -> build -> migrate -> deploy
+    # Apply migrations against the live DB, then bind Render's $PORT. Runs on
+    # each start; `alembic upgrade head` is a no-op when already at head. (On a
+    # paid/multi-instance plan, move this to preDeployCommand to avoid concurrent
+    # migrations.)
+    dockerCommand: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL           # paste the Neon connection string in the dashboard
+        sync: false
+      - key: JWT_SECRET             # Render generates a strong random value
+        generateValue: true
+      - key: FRONTEND_ORIGIN        # set to this service's own https URL once known
+        sync: false
+      - key: GOOGLE_API_KEY         # optional; blank -> deterministic rule-based query
+        sync: false
