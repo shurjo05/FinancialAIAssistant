@@ -14,7 +14,10 @@ services:
     # each start; `alembic upgrade head` is a no-op when already at head. (On a
     # paid/multi-instance plan, move this to preDeployCommand to avoid concurrent
     # migrations.)
-    dockerCommand: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"
+    # NOTE: Render already runs dockerCommand via a shell, so do NOT wrap it in
+    # `sh -c "..."` — the double-wrap makes the whole line one literal command
+    # (exit 127). Write the shell line directly; `&&` and $PORT resolve fine.
+    dockerCommand: alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: ENVIRONMENT
         value: production
