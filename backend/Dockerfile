@@ -33,6 +33,7 @@ COPY --from=frontend /frontend/dist ./backend/app/static
 
 WORKDIR /app/backend
 EXPOSE 8000
-# Migrations are NOT run here (no DB at build time) — they run as a deploy-time
-# step (compose command / Render release phase) before the app starts.
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# start.sh applies migrations (no DB exists at build time, so this runs at
+# container start), then launches uvicorn on $PORT. Invoked via `sh` so it
+# doesn't depend on the file's executable bit.
+CMD ["sh", "start.sh"]
