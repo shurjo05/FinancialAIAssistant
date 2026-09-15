@@ -34,6 +34,15 @@ def month_bounds(month: str) -> tuple[datetime.date, datetime.date]:
     return datetime.date(year, mon, 1), datetime.date(year, mon, last)
 
 
+def _valid_month(value: str | None) -> bool:
+    """True if `value` is a well-formed 'YYYY-MM' the model can pass safely."""
+    try:
+        year, mon = value.split("-")[:2]  # type: ignore[union-attr]
+        return len(year) == 4 and year.isdigit() and 1 <= int(mon) <= 12
+    except (ValueError, AttributeError):
+        return False
+
+
 def _expense_filters(user_id: int, start_date: str | None, end_date: str | None):
     """This user's expenses only, within an optional date range."""
     filters = [Transaction.user_id == user_id, Transaction.amount > 0]
@@ -85,6 +94,7 @@ def get_total(
     end_date: str | None = None,
 ) -> dict:
     """Total 'spending' (money out) or 'income' (money in) over a date range."""
+    kind = kind if kind in ("spending", "income") else "spending"  # clamp model input
     start, end = _parse_date(start_date), _parse_date(end_date)
     scope = [Transaction.user_id == user_id]
     if start:
@@ -128,6 +138,12 @@ def compare_periods(
     db: Session, user_id: int, period_a: str, period_b: str, category: str | None = None
 ) -> dict:
     """Compare spending between two 'YYYY-MM' months, optionally for a category."""
+    for label, m in (("period_a", period_a), ("period_b", period_b)):
+        if not _valid_month(m):
+            # Return a structured error the model can read and retry, rather than
+            # raising and forcing the whole request to fall back.
+            return {"error": f"{label} must be a 'YYYY-MM' month (received {m!r})"}
+
     def spend(month: str) -> float:
         start, end = month_bounds(month)
         if category:

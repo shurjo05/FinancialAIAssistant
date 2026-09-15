@@ -1,6 +1,7 @@
 """CSV upload endpoints: parse -> categorize -> persist. Plus a sample loader."""
 
 import io
+import time
 from pathlib import Path
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, UploadFile
@@ -8,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.core.metrics import metrics
 from app.models.models import Transaction, Upload, User
 from app.schemas.schemas import UploadResult
 from app.services.categorizer import categorize_batch
@@ -24,6 +26,7 @@ def _ingest(
     db: Session, background_tasks: BackgroundTasks, user_id: int, filename: str, text: str
 ) -> UploadResult:
     """Shared pipeline: parse -> categorize -> persist -> schedule detectors."""
+    started = time.perf_counter()
     rows, errors = parse_csv(io.StringIO(text))
     if not rows and errors:
         raise HTTPException(
@@ -47,21 +50,38 @@ def _ingest(
         [r["description"] for r in rows],
         [r["transaction_type"] for r in rows],
     )
-    for r, (category, confidence) in zip(rows, categorized, strict=False):
-        db.add(Transaction(
-            upload_id=upload.id,
-            user_id=user_id,
-            date=r["date"],
-            description=r["description"],
-            merchant_normalized=r["merchant_normalized"],
-            amount=r["amount"],
-            transaction_type=r["transaction_type"],
-            category=category,
-            category_confidence=confidence,
-        ))
+    # One batched INSERT instead of N ORM adds. All non-nullable columns are set
+    # explicitly (incl. the detector flags) so we don't rely on default timing.
+    mappings = [
+        {
+            "upload_id": upload.id,
+            "user_id": user_id,
+            "date": r["date"],
+            "description": r["description"],
+            "merchant_normalized": r["merchant_normalized"],
+            "amount": r["amount"],
+            "transaction_type": r["transaction_type"],
+            "category": category,
+            "category_confidence": confidence,
+            "is_recurring": False,
+            "is_anomaly": False,
+        }
+        for r, (category, confidence) in zip(rows, categorized, strict=False)
+    ]
+    if mappings:
+        db.bulk_insert_mappings(Transaction, mappings)
 
     db.commit()
     db.refresh(upload)
+
+    # Observability: ingest latency, volume, and low-confidence rate (feeds the
+    # Phase 14 active-learning work). No financial values are recorded.
+    metrics.observe_ms("csv_ingest", (time.perf_counter() - started) * 1000)
+    metrics.incr("transactions_ingested_total", len(mappings))
+    metrics.incr(
+        "low_confidence_categorizations",
+        sum(1 for _, conf in categorized if conf < 0.5),
+    )
 
     # Detection runs asynchronously so the response returns quickly.
     background_tasks.add_task(run_detectors, upload.id)

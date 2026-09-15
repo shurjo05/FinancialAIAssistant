@@ -14,8 +14,24 @@ import re
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.logging import get_logger
+from app.core.metrics import metrics
 from app.services import tools
 from app.services.categorizer import CATEGORIES
+
+logger = get_logger("app.ai")
+
+
+def _classify_llm_error(exc: Exception) -> str:
+    """Bucket a Gemini failure so we log *why* we fell back (not just that we did)."""
+    msg = str(exc).lower()
+    if any(s in msg for s in ("429", "resource_exhausted", "quota", "rate")):
+        return "rate_limited"
+    if any(s in msg for s in ("503", "unavailable", "overloaded")):
+        return "unavailable"
+    if any(s in msg for s in ("timeout", "deadline")):
+        return "timeout"
+    return "error"
 
 _MONTHS = {name.lower(): i for i, name in enumerate(calendar.month_name) if name}
 _MONTHS.update({name.lower(): i for i, name in enumerate(calendar.month_abbr) if name})
@@ -104,12 +120,31 @@ def fallback_answer(db: Session, user_id: int, question: str) -> tuple[str, list
 
 def answer_query(db: Session, user_id: int, question: str) -> dict:
     """Answer a question for one user, preferring Gemini and falling back to rules."""
+    metrics.incr("query_total")
+
     if settings.google_api_key:
         try:
             from app.services.gemini_provider import gemini_answer
-            return gemini_answer(db, user_id, question)
-        except Exception:
-            pass  # any Gemini failure -> deterministic fallback
+            result = gemini_answer(db, user_id, question)
+            metrics.incr("query_gemini_total")
+            return result
+        except Exception as exc:
+            # Classify + log WHY we fell back (rate limit vs error), so a silent
+            # degradation is observable. Never log the question (may be sensitive).
+            reason = _classify_llm_error(exc)
+            metrics.incr("query_fallback_total")
+            metrics.incr(f"query_fallback_{reason}")
+            logger.warning(
+                "gemini query failed; using rule-based fallback",
+                extra={"reason": reason, "error_type": type(exc).__name__},
+            )
+            answer, tools_used = fallback_answer(db, user_id, question)
+            return {
+                "answer": answer,
+                "provider": f"rule-based (gemini unavailable: {reason})",
+                "tools_used": tools_used,
+            }
 
     answer, tools_used = fallback_answer(db, user_id, question)
+    metrics.incr("query_rulebased_total")
     return {"answer": answer, "provider": "rule-based", "tools_used": tools_used}

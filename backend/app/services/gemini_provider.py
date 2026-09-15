@@ -7,10 +7,17 @@ grounded natural-language answer. Any failure here is caught by ai_service,
 which falls back to the deterministic engine.
 """
 
+import time
+
 from sqlalchemy.orm import Session
 
 from app.core.config import settings
+from app.core.metrics import metrics
 from app.services import tools
+
+# Hard ceiling on tool-call rounds per question, so a misbehaving loop can't run
+# up cost. A few rounds is plenty for our tools; the SDK default is higher.
+_MAX_TOOL_ROUNDS = 5
 
 SYSTEM_INSTRUCTION = (
     "You are a personal finance analyst. Answer the user's question using ONLY "
@@ -72,12 +79,17 @@ def gemini_answer(db: Session, user_id: int, question: str) -> dict:
     config = types.GenerateContentConfig(
         tools=_make_tools(db, user_id),
         system_instruction=SYSTEM_INSTRUCTION.format(start=rng["start"], end=rng["end"]),
+        automatic_function_calling=types.AutomaticFunctionCallingConfig(
+            maximum_remote_calls=_MAX_TOOL_ROUNDS,
+        ),
     )
+    start = time.perf_counter()
     response = client.models.generate_content(
         model=settings.google_model,
         contents=question,
         config=config,
     )
+    metrics.observe_ms("gemini_query", (time.perf_counter() - start) * 1000)
 
     # Recover which tools the model actually called, for transparency.
     tools_used: list[str] = []
@@ -87,8 +99,10 @@ def gemini_answer(db: Session, user_id: int, question: str) -> dict:
             if fc and fc.name:
                 tools_used.append(fc.name)
 
+    unique_tools = list(dict.fromkeys(tools_used))  # de-dupe, keep order
+    metrics.incr("tool_calls_total", len(tools_used))
     return {
         "answer": response.text,
         "provider": "gemini",
-        "tools_used": list(dict.fromkeys(tools_used)),  # de-dupe, keep order
+        "tools_used": unique_tools,
     }
