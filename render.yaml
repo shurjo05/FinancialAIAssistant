@@ -10,14 +10,9 @@ services:
     dockerContext: .                 # repo root — image needs frontend/, backend/, data/
     healthCheckPath: /api/health
     autoDeploy: true                 # merge to main -> build -> migrate -> deploy
-    # Apply migrations against the live DB, then bind Render's $PORT. Runs on
-    # each start; `alembic upgrade head` is a no-op when already at head. (On a
-    # paid/multi-instance plan, move this to preDeployCommand to avoid concurrent
-    # migrations.)
-    # NOTE: Render already runs dockerCommand via a shell, so do NOT wrap it in
-    # `sh -c "..."` — the double-wrap makes the whole line one literal command
-    # (exit 127). Write the shell line directly; `&&` and $PORT resolve fine.
-    dockerCommand: alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    # No dockerCommand: the image's CMD (backend/start.sh) applies migrations then
+    # starts uvicorn on $PORT. Render tokenizes dockerCommand into argv without a
+    # shell, so `&&` there is passed as a literal arg — the script avoids that.
     envVars:
       - key: ENVIRONMENT
         value: production
