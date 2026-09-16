@@ -15,6 +15,16 @@ export interface Transaction {
   is_anomaly: boolean;
 }
 
+export interface Correction {
+  id: number;
+  transaction_id: number;
+  original_category: string;
+  corrected_category: string;
+  original_confidence: number;
+  model_version: string | null;
+  created_at: string;
+}
+
 export interface TransactionList {
   items: Transaction[];
   total: number;

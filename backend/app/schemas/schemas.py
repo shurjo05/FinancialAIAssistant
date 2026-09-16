@@ -81,6 +81,26 @@ class TransactionList(BaseModel):
     page_size: int
 
 
+class CategoryUpdate(BaseModel):
+    """Body for correcting a transaction's category."""
+
+    category: str
+
+
+class CorrectionOut(BaseModel):
+    """A recorded category correction (training signal + audit)."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    transaction_id: int
+    original_category: str
+    corrected_category: str
+    original_confidence: float
+    model_version: str | None
+    created_at: datetime.datetime
+
+
 class SubscriptionOut(BaseModel):
     """A detected recurring payment."""
 
