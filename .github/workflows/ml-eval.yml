@@ -1,0 +1,48 @@
+name: ML eval
+
+# Separate from the main CI: this only runs when the categorizer or its data
+# code changes (or manually), so normal PRs aren't slowed by a dataset download.
+# It evaluates the PINNED model against the recorded baseline — it never retrains.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/app/ml/**"
+      - "backend/app/services/categorizer.py"
+      - ".github/workflows/ml-eval.yml"
+  pull_request:
+    paths:
+      - "backend/app/ml/**"
+      - "backend/app/services/categorizer.py"
+      - ".github/workflows/ml-eval.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ml-eval-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  eval:
+    name: Categorizer regression gate
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: backend/requirements-dev.txt
+      - name: Install dependencies (incl. ML training stack)
+        run: pip install -r requirements-dev.txt
+      - name: Cache HuggingFace dataset
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-dataset-${{ hashFiles('backend/app/ml/dataset.py') }}
+      - name: Fetch the pinned model
+        run: python -m scripts.fetch_model
+      - name: Evaluate categorizer (fail on regression)
+        run: python -m app.ml.eval_categorizer
