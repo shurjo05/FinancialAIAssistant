@@ -93,6 +93,15 @@ export const api = {
 
   corrections: () => http<Correction[]>("/api/corrections"),
 
+  logoutAll: () => http<{ detail: string }>("/api/auth/logout-all", { method: "POST" }),
+
+  changePassword: (current_password: string, new_password: string) =>
+    http<{ detail: string }>("/api/auth/change-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ current_password, new_password }),
+    }),
+
   subscriptions: (kind?: "subscription" | "bill") =>
     http<Subscription[]>(`/api/subscriptions${kind ? `?kind=${kind}` : ""}`),
 

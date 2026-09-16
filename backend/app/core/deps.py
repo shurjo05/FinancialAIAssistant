@@ -1,6 +1,6 @@
 """Auth dependency: resolve the current user from the Bearer token."""
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import Session
 
@@ -19,14 +19,24 @@ _credentials_error = HTTPException(
 
 
 def get_current_user(
+    request: Request,
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db),
 ) -> User:
-    """Decode the JWT, load the user, or raise 401."""
-    subject = decode_token(token)
-    if subject is None:
+    """Decode the JWT, load the user, verify the token version, or raise 401."""
+    claims = decode_token(token)
+    if claims is None or claims["sub"] is None:
         raise _credentials_error
-    user = db.get(User, int(subject))
+    try:
+        user = db.get(User, int(claims["sub"]))
+    except (TypeError, ValueError):
+        raise _credentials_error from None
     if user is None:
         raise _credentials_error
+    # Revocation check: a token issued before the user's version was bumped
+    # (logout-all / password change) is now invalid.
+    if claims["ver"] != user.token_version:
+        raise _credentials_error
+    # Expose the user id for the per-user rate limiter's key function.
+    request.state.user_id = user.id
     return user

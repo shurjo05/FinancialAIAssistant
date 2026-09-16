@@ -24,7 +24,12 @@ import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
 from app.core.database import Base, SessionLocal, engine  # noqa: E402
+from app.core.ratelimit import limiter  # noqa: E402
 from app.main import app  # noqa: E402
+
+# Rate limiting off by default so auth fixtures can log in freely; the dedicated
+# rate-limit test enables it locally.
+limiter.enabled = False
 
 DATA_DIR = Path(__file__).resolve().parents[2] / "data"
 

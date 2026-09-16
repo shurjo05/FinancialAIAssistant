@@ -134,3 +134,26 @@ jobs:
       # Dockerfile breaks (incl. fetching the pinned model from its Release).
       - name: Build image
         run: docker build -f backend/Dockerfile -t finance-ai:ci .
+
+  security:
+    name: Dependency audit (pip + npm)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      # Scan the actual runtime deps for known CVEs.
+      # PYSEC-2026-1325 (ecdsa timing side-channel, transitive via python-jose,
+      # no fix released) is triaged out: we sign with HS256, so the ECDSA path is
+      # never used. See docs/SECURITY.md.
+      - name: pip-audit (backend runtime deps)
+        run: |
+          pip install pip-audit
+          pip-audit -r backend/requirements.txt --ignore-vuln PYSEC-2026-1325
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: npm audit (frontend, high+)
+        working-directory: frontend
+        run: npm audit --audit-level=high

@@ -25,6 +25,9 @@ class User(Base):
     email: Mapped[str] = mapped_column(unique=True, index=True)
     hashed_password: Mapped[str]
     created_at: Mapped[datetime.datetime] = mapped_column(server_default=func.now())
+    # Bumped to revoke all of this user's tokens at once (logout-all, password
+    # change). A token is valid only while its `ver` claim matches this.
+    token_version: Mapped[int] = mapped_column(default=0, server_default="0")
 
 
 class Upload(Base):
