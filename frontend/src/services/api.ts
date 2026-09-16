@@ -2,8 +2,8 @@
 // URLs are relative — the Vite dev server proxies /api to the FastAPI backend.
 
 import type {
-  Anomaly, MonthlyPoint, QueryResponse, Subscription, Summary,
-  TransactionList, UploadResult,
+  Anomaly, Correction, MonthlyPoint, QueryResponse, Subscription, Summary,
+  Transaction, TransactionList, UploadResult,
 } from "../types";
 
 // --- Auth token (persisted so a refresh keeps you logged in) ---
@@ -38,6 +38,7 @@ export interface TransactionFilters {
   page_size?: number;
   category?: string;
   search?: string;
+  low_confidence?: boolean;
 }
 
 async function authRequest(url: string, init: RequestInit): Promise<Response> {
@@ -82,6 +83,15 @@ export const api = {
     });
     return http<TransactionList>(`/api/transactions?${params.toString()}`);
   },
+
+  updateCategory: (id: number, category: string) =>
+    http<Transaction>(`/api/transactions/${id}/category`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ category }),
+    }),
+
+  corrections: () => http<Correction[]>("/api/corrections"),
 
   subscriptions: (kind?: "subscription" | "bill") =>
     http<Subscription[]>(`/api/subscriptions${kind ? `?kind=${kind}` : ""}`),

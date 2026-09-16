@@ -15,7 +15,16 @@ from fastapi.responses import FileResponse
 from sqlalchemy import text
 from starlette.staticfiles import StaticFiles
 
-from app.api import analytics, anomalies, auth, query, subscriptions, transactions, upload
+from app.api import (
+    analytics,
+    anomalies,
+    auth,
+    corrections,
+    query,
+    subscriptions,
+    transactions,
+    upload,
+)
 from app.core.config import settings
 from app.core.database import engine
 from app.core.logging import configure_logging, get_logger
@@ -100,6 +109,7 @@ app.include_router(subscriptions.router)
 app.include_router(anomalies.router)
 app.include_router(query.router)
 app.include_router(analytics.router)
+app.include_router(corrections.router)
 
 
 # Serve the built React app from the same origin (single-service deploy). Only

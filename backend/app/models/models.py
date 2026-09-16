@@ -104,6 +104,26 @@ class Anomaly(Base):
     description: Mapped[str]             # human-readable explanation
 
 
+class Correction(Base):
+    """A user's category correction: training signal + prediction audit trail.
+
+    Records what the model predicted, what the human changed it to, the model's
+    original confidence, and which model version made the prediction — so
+    corrections can be exported and fed into a (manual, gated) retrain later.
+    """
+
+    __tablename__ = "corrections"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    transaction_id: Mapped[int] = mapped_column(ForeignKey("transactions.id"))
+    original_category: Mapped[str]
+    corrected_category: Mapped[str]
+    original_confidence: Mapped[float]
+    model_version: Mapped[str | None]  # from model_metadata.json; None if rules-only
+    created_at: Mapped[datetime.datetime] = mapped_column(server_default=func.now())
+
+
 class MonthlySummary(Base):
     """Pre-aggregated spend per category per month, for fast dashboards."""
 
