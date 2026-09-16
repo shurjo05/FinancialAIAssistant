@@ -7,7 +7,7 @@ from an ORM object (e.g. TransactionOut.model_validate(transaction_row)).
 
 import datetime
 
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UserCreate(BaseModel):
@@ -15,6 +15,13 @@ class UserCreate(BaseModel):
 
     email: EmailStr
     password: str
+
+
+class PasswordChange(BaseModel):
+    """Change-password payload."""
+
+    current_password: str
+    new_password: str = Field(min_length=8)
 
 
 class UserOut(BaseModel):

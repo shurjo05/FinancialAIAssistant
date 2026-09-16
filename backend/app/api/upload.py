@@ -21,6 +21,10 @@ router = APIRouter(prefix="/api", tags=["upload"])
 # Bundled sample CSV (repo_root/data/chase_sample.csv) for the demo button.
 SAMPLE_CSV = Path(__file__).resolve().parents[3] / "data" / "chase_sample.csv"
 
+# Upload guardrails: bound memory and work per request.
+MAX_UPLOAD_BYTES = 5 * 1024 * 1024  # 5 MB
+MAX_ROWS = 10_000
+
 
 def _ingest(
     db: Session, background_tasks: BackgroundTasks, user_id: int, filename: str, text: str
@@ -32,6 +36,11 @@ def _ingest(
         raise HTTPException(
             status_code=422,
             detail=f"Could not parse any rows: {errors[0]['issue']}",
+        )
+    if len(rows) > MAX_ROWS:
+        raise HTTPException(
+            status_code=413,
+            detail=f"Too many rows ({len(rows)}); the maximum is {MAX_ROWS}.",
         )
 
     dates = [r["date"] for r in rows]
@@ -109,7 +118,18 @@ def upload_csv(
     if not file.filename or not file.filename.lower().endswith(".csv"):
         raise HTTPException(status_code=400, detail="Please upload a .csv file.")
 
-    text = file.file.read().decode("utf-8-sig", errors="replace")
+    # Bounded read: pull at most the cap + 1 byte so an oversized upload can't
+    # exhaust memory, then reject if it exceeded the cap.
+    raw = file.file.read(MAX_UPLOAD_BYTES + 1)
+    if len(raw) > MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=413,
+            detail=f"File too large; the maximum is {MAX_UPLOAD_BYTES // (1024 * 1024)} MB.",
+        )
+    if not raw:
+        raise HTTPException(status_code=400, detail="The file is empty.")
+
+    text = raw.decode("utf-8-sig", errors="replace")
     return _ingest(db, background_tasks, user.id, file.filename, text)
 
 

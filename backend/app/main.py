@@ -12,6 +12,8 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 from sqlalchemy import text
 from starlette.staticfiles import StaticFiles
 
@@ -29,6 +31,7 @@ from app.core.config import settings
 from app.core.database import engine
 from app.core.logging import configure_logging, get_logger
 from app.core.metrics import metrics
+from app.core.ratelimit import limiter
 from app.services.categorizer import model_info
 
 # Built React app, copied here in the Docker image (single-service deploy).
@@ -39,6 +42,10 @@ configure_logging()
 logger = get_logger("app.request")
 
 app = FastAPI(title="JoMoney API")
+
+# Rate limiting (slowapi): limits are declared per-endpoint via @limiter.limit.
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Compress large JSON payloads (e.g. /api/transactions) over ~500 bytes.
 app.add_middleware(GZipMiddleware, minimum_size=500)
