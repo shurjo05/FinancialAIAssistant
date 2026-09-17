@@ -1,23 +1,20 @@
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
-import { Sparkles, Send, User } from "lucide-react";
+import { Sparkles, Send } from "lucide-react";
 import { api } from "../services/api";
-import { Card, PageHeader } from "../components/ui";
-import { cn } from "../lib/utils";
+import { PageHeader, Spark } from "../components/ui";
 
 interface Turn {
   question: string;
   answer?: string;
-  provider?: string;
-  tools?: string[];
   error?: string;
 }
 
 const SUGGESTIONS = [
   "How much did I spend on restaurants in March?",
   "Compare my spending in March vs April",
-  "What are my biggest unusual transactions?",
-  "How many subscriptions do I have?",
+  "Which subscriptions am I paying for?",
+  "Anything unusual last month?",
 ];
 
 export default function AskAI() {
@@ -26,17 +23,11 @@ export default function AskAI() {
 
   const ask = useMutation({
     mutationFn: api.query,
-    onMutate: (question) => {
-      setTurns((t) => [...t, { question }]);
-    },
-    onSuccess: (res) => {
-      setTurns((t) => t.map((turn, i) =>
-        i === t.length - 1 ? { ...turn, answer: res.answer, provider: res.provider, tools: res.tools_used } : turn));
-    },
-    onError: (err) => {
-      setTurns((t) => t.map((turn, i) =>
-        i === t.length - 1 ? { ...turn, error: (err as Error).message } : turn));
-    },
+    onMutate: (question) => setTurns((t) => [...t, { question }]),
+    onSuccess: (res) =>
+      setTurns((t) => t.map((turn, i) => (i === t.length - 1 ? { ...turn, answer: res.answer } : turn))),
+    onError: (err) =>
+      setTurns((t) => t.map((turn, i) => (i === t.length - 1 ? { ...turn, error: (err as Error).message } : turn))),
   });
 
   const submit = (question: string) => {
@@ -47,15 +38,15 @@ export default function AskAI() {
 
   return (
     <div>
-      <PageHeader title="Ask AI" subtitle="Ask about your finances — answers are computed from your data." />
+      <PageHeader title="Ask Jo" subtitle="Ask anything about your spending — answers come straight from your transactions." />
 
       {turns.length === 0 && (
-        <div className="mb-4 flex flex-wrap gap-2">
+        <div className="mb-5 flex flex-wrap gap-2">
           {SUGGESTIONS.map((s) => (
             <button
               key={s}
               onClick={() => submit(s)}
-              className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-sm text-slate-600 hover:border-brand-400 hover:text-brand-600"
+              className="rounded-full border border-line bg-card px-3.5 py-1.5 text-sm text-muted transition-colors hover:border-accent-a/40 hover:text-text"
             >
               {s}
             </button>
@@ -63,57 +54,49 @@ export default function AskAI() {
         </div>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-5">
         {turns.map((turn, i) => (
-          <div key={i} className="space-y-2">
-            <div className="flex items-start gap-2">
-              <User className="mt-1 h-5 w-5 shrink-0 text-slate-400" />
-              <p className="font-medium text-slate-700">{turn.question}</p>
-            </div>
-            <Card className="ml-7">
-              <div className="flex items-start gap-2">
-                <Sparkles className="mt-0.5 h-5 w-5 shrink-0 text-brand-500" />
-                <div className="flex-1">
-                  {turn.error ? (
-                    <p className="text-sm text-red-600">{turn.error}</p>
-                  ) : turn.answer ? (
-                    <>
-                      <p className="whitespace-pre-wrap text-sm text-slate-700">{turn.answer}</p>
-                      <p className="mt-2 text-xs text-slate-400">
-                        via {turn.provider}
-                        {turn.tools && turn.tools.length > 0 && ` · ${turn.tools.join(", ")}`}
-                      </p>
-                    </>
-                  ) : (
-                    <p className="text-sm text-slate-400">Thinking…</p>
-                  )}
-                </div>
+          <div key={i} className="space-y-2.5">
+            <div className="flex justify-end">
+              <div className="grad max-w-[80%] rounded-2xl rounded-br-md px-4 py-2.5 text-sm text-white">
+                {turn.question}
               </div>
-            </Card>
+            </div>
+            <div className="flex items-start gap-2.5">
+              <Spark className="mt-0.5 h-7 w-7 shrink-0" />
+              <div className="max-w-[80%] rounded-2xl rounded-tl-md border border-line bg-card px-4 py-3 shadow-card">
+                {turn.error ? (
+                  <p className="text-sm text-down">{turn.error}</p>
+                ) : turn.answer ? (
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-text">{turn.answer}</p>
+                ) : (
+                  <p className="flex items-center gap-2 text-sm text-faint">
+                    <Sparkles className="h-4 w-4 animate-pulse" /> Jo is thinking…
+                  </p>
+                )}
+              </div>
+            </div>
           </div>
         ))}
       </div>
 
-      <form
-        onSubmit={(e) => { e.preventDefault(); submit(input); }}
-        className="mt-4 flex gap-2"
-      >
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask a question about your spending…"
-          className="flex-1 rounded-lg border border-slate-300 px-4 py-2.5 text-sm focus:border-brand-500 focus:outline-none"
-        />
-        <button
-          type="submit"
-          disabled={ask.isPending}
-          className={cn(
-            "inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-700",
-            ask.isPending && "opacity-50",
-          )}
-        >
-          <Send className="h-4 w-4" />
-        </button>
+      <form onSubmit={(e) => { e.preventDefault(); submit(input); }} className="sticky bottom-4 mt-6">
+        <div className="flex items-center gap-2 rounded-2xl border border-line bg-card p-2 pl-4 shadow-card">
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask Jo about your spending…"
+            className="flex-1 border-0 bg-transparent text-[15px] text-text placeholder:text-faint focus:outline-none"
+          />
+          <button
+            type="submit"
+            disabled={ask.isPending}
+            aria-label="Send"
+            className="grad grid h-10 w-10 place-items-center rounded-xl text-white shadow-pop disabled:opacity-50"
+          >
+            <Send className="h-[18px] w-[18px]" />
+          </button>
+        </div>
       </form>
     </div>
   );

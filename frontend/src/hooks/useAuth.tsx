@@ -5,6 +5,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string) => Promise<void>;
+  demo: () => Promise<void>;
   logout: () => void;
 }
 
@@ -23,13 +24,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await login(email, password); // auto-login after registering
   };
 
+  const demo = async () => {
+    const { access_token } = await api.demo();
+    setTok(access_token);
+  };
+
   const logout = () => {
     clearToken();
     setTok(null);
   };
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated: !!token, login, register, logout }}>
+    <AuthContext.Provider value={{ isAuthenticated: !!token, login, register, demo, logout }}>
       {children}
     </AuthContext.Provider>
   );

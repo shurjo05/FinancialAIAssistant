@@ -22,27 +22,55 @@ export default function Categories() {
     <div>
       <PageHeader title="Categories" subtitle={`${fmtUSD(total)} total spending`} />
 
-      <Card>
-        <ResponsiveContainer width="100%" height={Math.max(240, rows.length * 38)}>
-          <BarChart data={rows} layout="vertical" margin={{ left: 24 }}>
-            <XAxis type="number" tickFormatter={(v) => `$${v / 1000}k`} fontSize={12} />
-            <YAxis type="category" dataKey="name" width={90} fontSize={12} tickFormatter={(v) => v} />
-            <Tooltip formatter={(v) => fmtUSD(Number(v))} cursor={{ fill: "#f1f5f9" }} />
-            <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+      <Card className="p-4 text-muted">
+        <ResponsiveContainer width="100%" height={Math.max(240, rows.length * 40)}>
+          <BarChart data={rows} layout="vertical" margin={{ left: 8, right: 16, top: 4, bottom: 4 }}>
+            <XAxis
+              type="number"
+              tickFormatter={(v) => `$${v / 1000}k`}
+              fontSize={12}
+              tick={{ fill: "currentColor" }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              type="category"
+              dataKey="name"
+              width={92}
+              fontSize={12}
+              tick={{ fill: "currentColor" }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <Tooltip
+              formatter={(v) => fmtUSD(Number(v))}
+              cursor={{ fill: "rgb(var(--text) / 0.04)" }}
+              contentStyle={{
+                background: "rgb(var(--card))",
+                border: "1px solid rgb(var(--line))",
+                borderRadius: 12,
+                color: "rgb(var(--text))",
+                fontSize: 13,
+              }}
+              labelStyle={{ color: "rgb(var(--text))" }}
+            />
+            <Bar dataKey="value" radius={[0, 6, 6, 0]} isAnimationActive={false}>
               {rows.map((r) => <Cell key={r.name} fill={colorFor(r.name)} />)}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
       </Card>
 
-      <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-3">
+      <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {rows.map((r) => (
-          <Card key={r.name} className="flex items-center justify-between">
-            <div>
-              <p className="font-medium capitalize text-slate-700">{r.name}</p>
-              <p className="text-xs text-slate-400">{r.pct.toFixed(1)}% of spending</p>
+          <Card key={r.name} className="flex items-center justify-between gap-3 p-4">
+            <div className="min-w-0">
+              <p className="truncate font-medium capitalize text-text">{r.name}</p>
+              <p className="mt-0.5 text-xs text-faint">{r.pct.toFixed(1)}% of spending</p>
             </div>
-            <p className="font-semibold" style={{ color: colorFor(r.name) }}>{fmtUSD(r.value)}</p>
+            <p className="num shrink-0 text-lg font-semibold" style={{ color: colorFor(r.name) }}>
+              {fmtUSD(r.value)}
+            </p>
           </Card>
         ))}
       </div>

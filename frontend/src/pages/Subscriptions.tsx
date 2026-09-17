@@ -25,14 +25,14 @@ export default function Subscriptions() {
         subtitle="Subscriptions (streaming, gym) separated from bills (rent, utilities)."
       />
 
-      <div className="mb-4 inline-flex rounded-lg border border-slate-200 bg-white p-1">
+      <div className="mb-5 inline-flex rounded-xl border border-line bg-card p-1">
         {(["subscription", "bill"] as Tab[]).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={cn(
-              "rounded-md px-4 py-1.5 text-sm font-medium capitalize transition-colors",
-              tab === t ? "bg-brand-600 text-white" : "text-slate-500 hover:text-slate-700",
+              "rounded-lg px-4 py-1.5 text-sm font-medium transition-colors",
+              tab === t ? "grad text-white shadow-pop" : "text-muted hover:text-text",
             )}
           >
             {t === "subscription" ? "Subscriptions" : "Recurring bills"}
@@ -46,27 +46,28 @@ export default function Subscriptions() {
         <NoData />
       ) : (
         <>
-          <Card className="mb-4 bg-brand-50">
-            <p className="text-sm text-slate-600">
-              <b>{data.length}</b> {tab === "subscription" ? "subscriptions" : "bills"} ·{" "}
-              <b>{fmtUSD(monthly)}</b>/month · <b>{fmtUSD(monthly * 12)}</b>/year
+          <Card className="mb-5 p-4">
+            <p className="text-sm text-muted">
+              <b className="num text-text">{data.length}</b> {tab === "subscription" ? "subscriptions" : "bills"}
+              {" · "}<b className="num text-text">{fmtUSD(monthly)}</b>/month
+              {" · "}<b className="num text-text">{fmtUSD(monthly * 12)}</b>/year
             </p>
           </Card>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             {data.map((s) => (
-              <Card key={s.id} className="flex items-center justify-between">
-                <div>
-                  <p className="flex items-center gap-2 font-medium text-slate-700">
-                    <RefreshCw className="h-4 w-4 text-brand-500" />
-                    {s.merchant_normalized}
+              <Card key={s.id} className="flex items-center justify-between gap-4 p-4">
+                <div className="min-w-0">
+                  <p className="flex items-center gap-2 font-medium text-text">
+                    <RefreshCw className="h-4 w-4 shrink-0 text-accent-a" />
+                    <span className="truncate">{s.merchant_normalized}</span>
                   </p>
-                  <p className="mt-1 flex items-center gap-2 text-xs text-slate-400">
+                  <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
                     <CategoryBadge category={s.category} />
-                    {s.frequency} · last {fmtDate(s.last_charged)}
+                    <span>{s.frequency} · last {fmtDate(s.last_charged)}</span>
                   </p>
                 </div>
-                <p className="font-semibold text-slate-700">{fmtUSD(s.amount)}</p>
+                <p className="num shrink-0 text-lg font-semibold text-text">{fmtUSD(s.amount)}</p>
               </Card>
             ))}
           </div>

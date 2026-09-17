@@ -72,6 +72,14 @@ export const api = {
     return data;
   },
 
+  // Enter the shared demo account (sample data) — no signup.
+  demo: async () => {
+    const res = await authRequest("/api/auth/demo", { method: "POST" });
+    const data = (await res.json()) as { access_token: string };
+    setToken(data.access_token);
+    return data;
+  },
+
   summary: () => http<Summary>("/api/analytics/summary"),
   byCategory: () => http<{ by_category: Record<string, number> }>("/api/analytics/by-category"),
   monthly: () => http<MonthlyPoint[]>("/api/analytics/monthly"),

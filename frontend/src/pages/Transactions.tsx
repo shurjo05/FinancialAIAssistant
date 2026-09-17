@@ -3,10 +3,13 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 import { RefreshCw, AlertTriangle } from "lucide-react";
 import { api } from "../services/api";
 import { Card, Spinner, PageHeader } from "../components/ui";
-import { fmtUSD, fmtDate, CATEGORY_COLORS } from "../lib/utils";
+import { fmtUSD, fmtDate, CATEGORY_COLORS, cn } from "../lib/utils";
 
 const PAGE_SIZE = 25;
 const CATEGORIES = Object.keys(CATEGORY_COLORS);
+
+const fieldCls =
+  "rounded-xl border border-line bg-card px-3 py-2 text-sm text-text focus:border-accent-a focus:outline-none";
 
 export default function Transactions() {
   const [page, setPage] = useState(1);
@@ -42,78 +45,87 @@ export default function Transactions() {
           value={search}
           onChange={(e) => { setSearch(e.target.value); setPage(1); }}
           placeholder="Search merchant…"
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none"
+          className={`${fieldCls} placeholder:text-faint`}
         />
         <select
           value={category}
           onChange={(e) => { setCategory(e.target.value); setPage(1); }}
-          className="rounded-lg border border-slate-300 px-3 py-2 text-sm capitalize focus:border-brand-500 focus:outline-none"
+          className={`${fieldCls} capitalize`}
         >
           <option value="">All categories</option>
           {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
         </select>
         <button
           onClick={() => { setNeedsReview((v) => !v); setPage(1); }}
-          className={`rounded-lg border px-3 py-2 text-sm ${
-            needsReview
-              ? "border-amber-400 bg-amber-50 text-amber-700"
-              : "border-slate-300 text-slate-600"
-          }`}
+          className={cn(
+            "rounded-xl border px-3 py-2 text-sm transition-colors",
+            needsReview ? "border-amber-400 bg-amber-400/10 text-amber-500" : "border-line text-muted hover:text-text",
+          )}
         >
           Needs review
         </button>
       </div>
 
-      <Card className="p-0">
+      <Card className="overflow-hidden p-0">
         {isLoading ? (
           <Spinner />
         ) : !data || data.items.length === 0 ? (
-          <p className="py-16 text-center text-sm text-slate-400">No transactions match your filters.</p>
+          <p className="py-16 text-center text-sm text-faint">No transactions match your filters.</p>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 text-left text-xs uppercase text-slate-400">
-                <th className="px-5 py-3 font-medium">Date</th>
-                <th className="px-5 py-3 font-medium">Merchant</th>
-                <th className="px-5 py-3 font-medium">Category</th>
-                <th className="px-5 py-3 text-right font-medium">Amount</th>
-                <th className="px-5 py-3 font-medium">Flags</th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.items.map((t) => (
-                <tr key={t.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50">
-                  <td className="whitespace-nowrap px-5 py-3 text-slate-500">{fmtDate(t.date)}</td>
-                  <td className="px-5 py-3 font-medium text-slate-700">{t.merchant_normalized}</td>
-                  <td className="px-5 py-3">
-                    <div className="flex items-center gap-2">
-                      <select
-                        value={t.category}
-                        onChange={(e) => correctCategory.mutate({ id: t.id, cat: e.target.value })}
-                        className="rounded-md border border-slate-300 px-2 py-1 text-xs capitalize focus:border-brand-500 focus:outline-none"
-                      >
-                        {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                      </select>
-                      {t.category_confidence < 0.5 && (
-                        <span title="Low confidence — please review" className="text-xs font-semibold text-amber-500">
-                          review
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className={`px-5 py-3 text-right font-medium ${t.amount < 0 ? "text-green-600" : "text-slate-700"}`}>
-                    {t.amount < 0 ? `+${fmtUSD(-t.amount)}` : fmtUSD(t.amount)}
-                  </td>
-                  <td className="px-5 py-3">
-                    <div className="flex gap-1.5 text-slate-400">
-                      {t.is_recurring && <RefreshCw className="h-4 w-4 text-brand-500" aria-label="recurring" />}
-                      {t.is_anomaly && <AlertTriangle className="h-4 w-4 text-amber-500" aria-label="anomaly" />}
-                    </div>
-                  </td>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-faint">
+                  <th className="px-5 py-3 font-medium">Date</th>
+                  <th className="px-5 py-3 font-medium">Merchant</th>
+                  <th className="px-5 py-3 font-medium">Category</th>
+                  <th className="px-5 py-3 text-right font-medium">Amount</th>
+                  <th className="px-5 py-3 font-medium">Flags</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {data.items.map((t) => (
+                  <tr key={t.id} className="border-b border-line-soft last:border-0 hover:bg-line-soft/60">
+                    <td className="whitespace-nowrap px-5 py-3 text-muted">{fmtDate(t.date)}</td>
+                    <td className="px-5 py-3 font-medium text-text">{t.merchant_normalized}</td>
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={t.category}
+                          onChange={(e) => correctCategory.mutate({ id: t.id, cat: e.target.value })}
+                          className="rounded-lg border border-line bg-card px-2 py-1 text-xs capitalize text-text focus:border-accent-a focus:outline-none"
+                        >
+                          {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                        {t.category_confidence < 0.5 && (
+                          <span title="Low confidence — please review" className="text-xs font-semibold text-amber-500">
+                            review
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className={cn("num px-5 py-3 text-right font-semibold", t.amount < 0 ? "text-up" : "text-text")}>
+                      {t.amount < 0 ? `+${fmtUSD(-t.amount)}` : fmtUSD(t.amount)}
+                    </td>
+                    <td className="px-5 py-3">
+                      <div className="flex gap-2">
+                        {t.is_recurring && (
+                          <span title="Recurring payment" className="inline-flex">
+                            <RefreshCw className="h-4 w-4 text-accent-a" aria-label="Recurring payment" />
+                          </span>
+                        )}
+                        {t.is_anomaly && (
+                          <span title="Flagged as unusual" className="inline-flex">
+                            <AlertTriangle className="h-4 w-4 text-amber-500" aria-label="Flagged as unusual" />
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </Card>
 
@@ -122,15 +134,15 @@ export default function Transactions() {
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page <= 1}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 disabled:opacity-40"
+            className="rounded-xl border border-line px-3 py-1.5 text-text disabled:opacity-40"
           >
             Previous
           </button>
-          <span className="text-slate-500">Page {page} of {totalPages}</span>
+          <span className="text-muted">Page {page} of {totalPages}</span>
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 disabled:opacity-40"
+            className="rounded-xl border border-line px-3 py-1.5 text-text disabled:opacity-40"
           >
             Next
           </button>
