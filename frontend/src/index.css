@@ -2,12 +2,105 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ── Design tokens (RGB channels so Tailwind's /opacity modifiers work) ── */
 :root {
+  --bg: 245 245 251;
+  --surface: 255 255 255;
+  --card: 255 255 255;
+  --line: 231 230 241;
+  --line-soft: 238 237 246;
+  --text: 22 21 31;
+  --muted: 108 106 128;
+  --faint: 155 153 173;
+  --accent-a: 122 40 201;
+  --accent-b: 167 54 214;
+  --up: 18 166 107;
+  --down: 220 38 38;
   color-scheme: light;
 }
 
+/* System dark (un-stamped) unless an explicit light choice overrides it */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: 9 9 15;
+    --surface: 15 14 23;
+    --card: 22 21 31;
+    --line: 38 36 53;
+    --line-soft: 29 28 42;
+    --text: 236 234 246;
+    --muted: 158 156 180;
+    --faint: 110 108 130;
+    --accent-a: 155 68 224;
+    --accent-b: 194 79 232;
+    --up: 69 224 139;
+    --down: 248 113 113;
+    color-scheme: dark;
+  }
+}
+
+/* Explicit dark choice wins in both directions */
+:root[data-theme="dark"] {
+  --bg: 9 9 15;
+  --surface: 15 14 23;
+  --card: 22 21 31;
+  --line: 38 36 53;
+  --line-soft: 29 28 42;
+  --text: 236 234 246;
+  --muted: 158 156 180;
+  --faint: 110 108 130;
+  --accent-a: 155 68 224;
+  --accent-b: 194 79 232;
+  --up: 69 224 139;
+  --down: 248 113 113;
+  color-scheme: dark;
+}
+
 body {
-  @apply bg-slate-50 text-slate-800 antialiased;
   margin: 0;
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: rgb(var(--bg));
+  color: rgb(var(--text));
+  font-family: "Instrument Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Tabular, tight figures for money — reused everywhere numbers matter */
+.num {
+  font-family: "Sora", system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* The one accent, spent on intelligence */
+.grad {
+  background-image: linear-gradient(135deg, rgb(var(--accent-a)), rgb(var(--accent-b)));
+}
+.grad-text {
+  background-image: linear-gradient(135deg, rgb(var(--accent-a)), rgb(var(--accent-b)));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Home hero — light: white dropping into purple; dark: black into purple. */
+.home-gradient {
+  background:
+    radial-gradient(120% 80% at 100% 0%, rgba(150, 60, 220, 0.12), transparent 60%),
+    linear-gradient(180deg, #ffffff 0%, #f9f5ff 28%, #efe1ff 64%, #e3ceff 100%);
+  color: rgb(var(--text));
+}
+:root[data-theme="dark"] .home-gradient {
+  background:
+    radial-gradient(120% 80% at 100% 0%, rgba(120, 40, 200, 0.10), transparent 60%),
+    linear-gradient(180deg, #060509 0%, #09060f 26%, #1b0930 66%, #380f58 100%);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .home-gradient {
+    background:
+      radial-gradient(120% 80% at 100% 0%, rgba(120, 40, 200, 0.10), transparent 60%),
+      linear-gradient(180deg, #060509 0%, #09060f 26%, #1b0930 66%, #380f58 100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }

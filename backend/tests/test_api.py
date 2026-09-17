@@ -36,6 +36,13 @@ def test_register_and_login(client):
     assert r.json()["access_token"]
 
 
+def test_demo_login_loads_sample_data(client):
+    r = client.post("/api/auth/demo")
+    assert r.status_code == 200
+    h = {"Authorization": f"Bearer {r.json()['access_token']}"}
+    assert client.get("/api/transactions", headers=h).json()["total"] > 0
+
+
 def test_login_wrong_password_rejected(client):
     client.post("/api/auth/register", json={"email": "x@example.com", "password": "correct1"})
     r = client.post("/api/auth/login", data={"username": "x@example.com", "password": "wrong"})

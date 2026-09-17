@@ -22,19 +22,16 @@ export default function Anomalies() {
         {data.map((a) => {
           const severe = (a.z_score ?? 0) >= 3;
           return (
-            <Card
-              key={a.id}
-              className={severe ? "border-red-200 bg-red-50" : "border-amber-200 bg-amber-50"}
-            >
-              <div className="flex items-start gap-3">
-                <AlertTriangle className={`mt-0.5 h-5 w-5 ${severe ? "text-red-500" : "text-amber-500"}`} />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-slate-700">{a.description}</p>
-                  <div className="mt-1 flex items-center gap-2 text-xs text-slate-500">
-                    <CategoryBadge category={a.category} />
-                    <span className="capitalize">{a.anomaly_type.replace("_", " ")}</span>
-                    {a.z_score != null && <span>· z-score {a.z_score.toFixed(1)}</span>}
-                  </div>
+            <Card key={a.id} className="flex items-start gap-3 p-4">
+              {/* Severity stripe — red for extreme, amber otherwise */}
+              <span className={`mt-0.5 h-9 w-1 shrink-0 rounded-full ${severe ? "bg-down" : "bg-amber-400"}`} />
+              <AlertTriangle className={`mt-0.5 h-5 w-5 shrink-0 ${severe ? "text-down" : "text-amber-400"}`} />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-text">{a.description}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
+                  <CategoryBadge category={a.category} />
+                  <span className="capitalize">{a.anomaly_type.replace("_", " ")}</span>
+                  {a.z_score != null && <span>· z-score {a.z_score.toFixed(1)}</span>}
                 </div>
               </div>
             </Card>

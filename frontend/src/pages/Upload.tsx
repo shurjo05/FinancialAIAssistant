@@ -2,7 +2,7 @@ import { useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { UploadCloud, Sparkles, FileWarning } from "lucide-react";
+import { UploadCloud, FileWarning } from "lucide-react";
 import { api } from "../services/api";
 import type { UploadResult } from "../types";
 import { Card, PageHeader } from "../components/ui";
@@ -12,13 +12,13 @@ export default function UploadPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
 
-  const onDone = (result: UploadResult) => {
-    qc.invalidateQueries();
-    if (result.row_count > 0) navigate("/");
-  };
-
-  const upload = useMutation({ mutationFn: api.uploadCsv, onSuccess: onDone });
-  const sample = useMutation({ mutationFn: api.loadSample, onSuccess: onDone });
+  const upload = useMutation({
+    mutationFn: api.uploadCsv,
+    onSuccess: (result: UploadResult) => {
+      qc.invalidateQueries();
+      if (result.row_count > 0) navigate("/overview");
+    },
+  });
 
   const onDrop = useCallback((files: File[]) => {
     if (files[0]) upload.mutate(files[0]);
@@ -28,9 +28,9 @@ export default function UploadPage() {
     onDrop, accept: { "text/csv": [".csv"] }, multiple: false,
   });
 
-  const busy = upload.isPending || sample.isPending;
-  const error = upload.error || sample.error;
-  const result = upload.data || sample.data;
+  const busy = upload.isPending;
+  const error = upload.error;
+  const result = upload.data;
 
   return (
     <div>
@@ -39,47 +39,35 @@ export default function UploadPage() {
         subtitle="Drop a bank or credit-card CSV — Chase, Bank of America, Capital One, or a generic export."
       />
 
-      <div {...getRootProps()}
+      <div
+        {...getRootProps()}
         className={cn(
-          "flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed bg-white py-16 transition-colors",
-          isDragActive ? "border-brand-500 bg-brand-50" : "border-slate-300 hover:border-brand-400",
+          "flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed py-16 transition-colors",
+          isDragActive ? "border-accent-a bg-accent-a/10" : "border-line bg-card hover:border-accent-a/50",
         )}
       >
         <input {...getInputProps()} />
-        <UploadCloud className="h-10 w-10 text-slate-400" />
-        <p className="mt-3 font-medium text-slate-700">
+        <UploadCloud className="h-10 w-10 text-faint" />
+        <p className="mt-3 font-medium text-text">
           {busy ? "Processing…" : "Drag a CSV here, or click to browse"}
         </p>
-        <p className="mt-1 text-sm text-slate-400">Your data stays local.</p>
-      </div>
-
-      <div className="mt-4 flex items-center gap-3">
-        <button
-          onClick={() => sample.mutate()}
-          disabled={busy}
-          className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-        >
-          <Sparkles className="h-4 w-4" />
-          Load sample data
-        </button>
-        <span className="text-sm text-slate-400">No CSV handy? Try 6 months of realistic data.</span>
+        <p className="mt-1 text-sm text-faint">Your data stays private to your account.</p>
       </div>
 
       {error && (
-        <Card className="mt-4 border-red-200 bg-red-50">
-          <p className="flex items-center gap-2 text-sm font-medium text-red-700">
+        <Card className="mt-4 border-down/30 bg-down/10 p-4">
+          <p className="flex items-center gap-2 text-sm font-medium text-down">
             <FileWarning className="h-4 w-4" /> {(error as Error).message}
           </p>
         </Card>
       )}
 
       {result && (
-        <Card className="mt-4">
-          <p className="text-sm text-slate-700">
-            Imported <b>{result.row_count}</b> transactions from{" "}
-            <b>{result.filename}</b>
+        <Card className="mt-4 p-4">
+          <p className="text-sm text-text">
+            Imported <b className="num">{result.row_count}</b> transactions from <b>{result.filename}</b>
             {result.error_count > 0 && (
-              <> · <span className="text-amber-600">{result.error_count} row(s) skipped</span></>
+              <> · <span className="text-amber-500">{result.error_count} row(s) skipped</span></>
             )}.
           </p>
         </Card>

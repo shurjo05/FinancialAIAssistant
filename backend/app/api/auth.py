@@ -1,8 +1,8 @@
 """Authentication endpoints: register and login."""
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -13,6 +13,11 @@ from app.models.models import User
 from app.schemas.schemas import PasswordChange, Token, UserCreate, UserOut
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+# Shared, sample-data-only account behind "Try the live demo". No one signs in
+# with a password — /demo issues a token server-side, so there are no public
+# credentials in the wild.
+DEMO_EMAIL = "demo@jomoney.app"
 
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
@@ -44,6 +49,37 @@ def login(
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    return Token(access_token=create_access_token(str(user.id), user.token_version))
+
+
+@router.post("/demo", response_model=Token)
+@limiter.limit("15/minute")
+def demo_login(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+) -> Token:
+    """Enter the shared demo account (sample data), creating it on first use."""
+    import secrets
+
+    from app.api.upload import SAMPLE_CSV, _ingest
+    from app.models.models import Transaction
+
+    user = db.scalar(select(User).where(User.email == DEMO_EMAIL))
+    if user is None:
+        user = User(email=DEMO_EMAIL, hashed_password=hash_password(secrets.token_urlsafe(24)))
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    # Self-healing: load the sample data if the demo account has none yet.
+    has_data = db.scalar(
+        select(func.count()).select_from(Transaction).where(Transaction.user_id == user.id)
+    )
+    if not has_data:
+        text = SAMPLE_CSV.read_text(encoding="utf-8-sig")
+        _ingest(db, background_tasks, user.id, "sample_transactions.csv", text)
+
     return Token(access_token=create_access_token(str(user.id), user.token_version))
 
 
