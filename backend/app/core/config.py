@@ -33,7 +33,20 @@ class Settings(BaseSettings):
     ollama_model: str = "llama3.2"
     google_api_key: str = ""
     google_model: str = "gemini-3.6-flash"
+    # Cheaper/lighter models to fall through to when the primary hits its free-tier
+    # quota (429/RESOURCE_EXHAUSTED). Free quotas are PER MODEL, so a chain roughly
+    # sums the headroom on one key; `-lite` variants tend to have the most generous
+    # free tiers. Comma-separated; set to "" to disable fallback. NOTE: a model must
+    # be callable by THIS project — some listed models (e.g. gemini-2.5-flash) are
+    # "no longer available to new users" and 404, which is NOT a quota error; these
+    # were verified callable on a new-tier key.
+    google_fallback_models: str = "gemini-3.5-flash,gemini-3.5-flash-lite,gemini-flash-lite-latest"
     openai_api_key: str = ""
+
+    # Hard ceiling on Gemini calls per (UTC) day across the whole instance. Past
+    # this, Jo transparently serves the deterministic fallback instead of calling
+    # the API — a budget backstop that no per-minute rate limit can guarantee.
+    gemini_daily_cap: int = 300
 
     # Tells pydantic to read a .env file and ignore unknown keys.
     model_config = SettingsConfigDict(
@@ -69,6 +82,17 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.environment.lower() == "production"
+
+    @property
+    def model_chain(self) -> list[str]:
+        """Primary model first, then fallbacks — deduped, order preserved.
+
+        Gemini tries each in turn, dropping to the next only on a quota error, so
+        the effective free-tier headroom is roughly the sum across models.
+        """
+        chain = [self.google_model]
+        chain += [m.strip() for m in self.google_fallback_models.split(",") if m.strip()]
+        return list(dict.fromkeys(chain))  # dedupe, keep order
 
 
 # Single shared instance imported across the app.

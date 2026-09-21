@@ -13,6 +13,7 @@ import re
 
 from sqlalchemy.orm import Session
 
+from app.core.budget import gemini_budget
 from app.core.config import settings
 from app.core.logging import get_logger
 from app.core.metrics import metrics
@@ -20,6 +21,31 @@ from app.services import tools
 from app.services.categorizer import CATEGORIES
 
 logger = get_logger("app.ai")
+
+
+class AIUnavailable(Exception):
+    """Gemini was expected (an API key is configured) but temporarily failed.
+
+    Raised instead of silently answering from the deterministic engine, because
+    a context-less rule-based reply to a conversational follow-up is worse than
+    telling the user to retry. The endpoints surface this as a 503 the chat UI
+    renders with a Retry button. `reason` is for logs/metrics; `message` is shown.
+    """
+
+    def __init__(self, reason: str, message: str) -> None:
+        self.reason = reason
+        self.message = message
+        super().__init__(message)
+
+
+# User-facing copy per failure reason (all transient / retryable).
+_UNAVAILABLE_MESSAGES = {
+    "rate_limited": "Jo's getting a lot of requests right now — give it a few seconds and hit retry.",
+    "unavailable": "Jo's AI service is momentarily unavailable. Please retry.",
+    "timeout": "That took too long to answer. Please retry.",
+    "budget": "Jo has reached today's AI usage limit. Please try again later.",
+    "error": "Jo hit a snag answering that. Please retry.",
+}
 
 
 def _classify_llm_error(exc: Exception) -> str:
@@ -118,33 +144,55 @@ def fallback_answer(db: Session, user_id: int, question: str) -> tuple[str, list
     return (f"Your total spending{month_label} was ${d['total']:,.2f}.", ["get_total"])
 
 
-def answer_query(db: Session, user_id: int, question: str) -> dict:
-    """Answer a question for one user, preferring Gemini and falling back to rules."""
+def answer_query(
+    db: Session,
+    user_id: int,
+    question: str,
+    history: list[dict] | None = None,
+    style: str = "friendly",
+) -> dict:
+    """Answer a question for one user.
+
+    Marker for whether we ever fall back: **is an API key configured?**
+      - No key  → offline / zero-keys mode; the deterministic engine IS the
+        answer (the app's no-API-key guarantee). This is the only path that
+        returns a rule-based answer to a user.
+      - Key set → Gemini is expected. Any failure (rate limit, outage, timeout,
+        or the daily budget cap) raises `AIUnavailable` (a retryable 503) rather
+        than silently degrading to a context-less rule-based reply — which, with
+        conversation memory in play, would usually be wrong.
+
+    `history` is the bounded conversation-memory window (may be empty).
+    """
     metrics.incr("query_total")
 
-    if settings.google_api_key:
-        try:
-            from app.services.gemini_provider import gemini_answer
-            result = gemini_answer(db, user_id, question)
-            metrics.incr("query_gemini_total")
-            return result
-        except Exception as exc:
-            # Classify + log WHY we fell back (rate limit vs error), so a silent
-            # degradation is observable. Never log the question (may be sensitive).
-            reason = _classify_llm_error(exc)
-            metrics.incr("query_fallback_total")
-            metrics.incr(f"query_fallback_{reason}")
-            logger.warning(
-                "gemini query failed; using rule-based fallback",
-                extra={"reason": reason, "error_type": type(exc).__name__},
-            )
-            answer, tools_used = fallback_answer(db, user_id, question)
-            return {
-                "answer": answer,
-                "provider": f"rule-based (gemini unavailable: {reason})",
-                "tools_used": tools_used,
-            }
+    if not settings.google_api_key:
+        answer, tools_used = fallback_answer(db, user_id, question)
+        metrics.incr("query_rulebased_total")
+        return {"answer": answer, "provider": "rule-based", "tools_used": tools_used}
 
-    answer, tools_used = fallback_answer(db, user_id, question)
-    metrics.incr("query_rulebased_total")
-    return {"answer": answer, "provider": "rule-based", "tools_used": tools_used}
+    # A key is configured: Gemini is the expected answer path. Check the daily
+    # budget WITHOUT reserving, and only count the call if it actually succeeds —
+    # so an outage / rate-limit (which produced no answer) never wastes budget.
+    if not gemini_budget.has_budget():
+        metrics.incr("query_unavailable_total")
+        metrics.incr("query_unavailable_budget")
+        logger.warning("gemini daily budget spent")
+        raise AIUnavailable("budget", _UNAVAILABLE_MESSAGES["budget"])
+
+    try:
+        from app.services.gemini_provider import gemini_answer
+        result = gemini_answer(db, user_id, question, history=history, style=style)
+        gemini_budget.record()  # count only a successful call
+        metrics.incr("query_gemini_total")
+        return result
+    except Exception as exc:
+        # Classify + log WHY (rate limit vs error) without logging the question.
+        reason = _classify_llm_error(exc)
+        metrics.incr("query_unavailable_total")
+        metrics.incr(f"query_unavailable_{reason}")
+        logger.warning(
+            "gemini query failed; surfacing retryable error",
+            extra={"reason": reason, "error_type": type(exc).__name__},
+        )
+        raise AIUnavailable(reason, _UNAVAILABLE_MESSAGES.get(reason, _UNAVAILABLE_MESSAGES["error"])) from exc

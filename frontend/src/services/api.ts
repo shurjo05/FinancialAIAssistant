@@ -2,16 +2,23 @@
 // URLs are relative — the Vite dev server proxies /api to the FastAPI backend.
 
 import type {
-  Anomaly, Correction, MonthlyPoint, QueryResponse, Subscription, Summary,
+  Anomaly, ChatMessage, ChatStyle, ConversationDetail, ConversationSummary,
+  Correction, MonthlyPoint, QueryResponse, SendResult, Subscription, Summary,
   Transaction, TransactionList, UploadResult,
 } from "../types";
 
 // --- Auth token (persisted so a refresh keeps you logged in) ---
 const TOKEN_KEY = "finance_ai_token";
+// Marks the shared demo session, which uses the stateless (unsaved) chat path.
+const DEMO_KEY = "finance_ai_demo";
 
 export const getToken = () => localStorage.getItem(TOKEN_KEY);
 export const setToken = (t: string) => localStorage.setItem(TOKEN_KEY, t);
-export const clearToken = () => localStorage.removeItem(TOKEN_KEY);
+export const clearToken = () => {
+  localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(DEMO_KEY);
+};
+export const isDemo = () => localStorage.getItem(DEMO_KEY) === "1";
 
 async function http<T>(url: string, init: RequestInit = {}): Promise<T> {
   const token = getToken();
@@ -30,6 +37,7 @@ async function http<T>(url: string, init: RequestInit = {}): Promise<T> {
     const detail = await res.json().catch(() => ({}));
     throw new Error(detail?.detail ?? `Request failed: ${res.status}`);
   }
+  if (res.status === 204) return undefined as T;  // no content (e.g. DELETE)
   return res.json() as Promise<T>;
 }
 
@@ -68,15 +76,18 @@ export const api = {
       body: new URLSearchParams({ username: email, password }),
     });
     const data = (await res.json()) as { access_token: string };
+    localStorage.removeItem(DEMO_KEY);
     setToken(data.access_token);
     return data;
   },
 
-  // Enter the shared demo account (sample data) — no signup.
+  // Enter the shared demo account (sample data) — no signup. Marks the session
+  // as demo so the chat uses the stateless, unsaved path.
   demo: async () => {
     const res = await authRequest("/api/auth/demo", { method: "POST" });
     const data = (await res.json()) as { access_token: string };
     setToken(data.access_token);
+    localStorage.setItem(DEMO_KEY, "1");
     return data;
   },
 
@@ -115,12 +126,33 @@ export const api = {
 
   anomalies: () => http<Anomaly[]>("/api/anomalies"),
 
-  query: (question: string) =>
+  // Stateless chat (demo / ephemeral): the client supplies recent turns as
+  // context; nothing is saved server-side.
+  query: (question: string, history: ChatMessage[] = [], style: ChatStyle = "friendly") =>
     http<QueryResponse>("/api/query", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question }),
+      body: JSON.stringify({
+        question,
+        style,
+        history: history.map((m) => ({ role: m.role, content: m.content })),
+      }),
     }),
+
+  // Persisted chat (real users): durable, resumable threads.
+  listConversations: () => http<ConversationSummary[]>("/api/conversations"),
+
+  getConversation: (id: number) => http<ConversationDetail>(`/api/conversations/${id}`),
+
+  sendMessage: (question: string, conversationId: number | null, style: ChatStyle = "friendly") =>
+    http<SendResult>("/api/conversations/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question, style, conversation_id: conversationId }),
+    }),
+
+  deleteConversation: (id: number) =>
+    http<void>(`/api/conversations/${id}`, { method: "DELETE" }),
 
   uploadCsv: (file: File) => {
     const form = new FormData();
