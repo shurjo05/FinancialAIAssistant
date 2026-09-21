@@ -78,34 +78,6 @@ export interface QueryResponse {
   tools_used: string[];
 }
 
-export type ChatStyle = "friendly" | "numbers" | "coach";
-
-export interface ChatMessage {
-  id?: number;
-  role: "user" | "assistant";
-  content: string;
-  tools_used?: string[] | null;
-  provider?: string | null;
-  created_at?: string;
-}
-
-export interface ConversationSummary {
-  id: number;
-  title: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface ConversationDetail extends ConversationSummary {
-  messages: ChatMessage[];
-}
-
-export interface SendResult {
-  conversation_id: number;
-  title: string;
-  message: ChatMessage;
-}
-
 export interface MerchantTotal {
   merchant: string;
   total: number;

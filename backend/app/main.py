@@ -11,7 +11,8 @@ from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse
+from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from sqlalchemy import text
 from starlette.staticfiles import StaticFiles
@@ -20,7 +21,6 @@ from app.api import (
     analytics,
     anomalies,
     auth,
-    conversations,
     corrections,
     query,
     subscriptions,
@@ -32,7 +32,6 @@ from app.core.database import engine
 from app.core.logging import configure_logging, get_logger
 from app.core.metrics import metrics
 from app.core.ratelimit import limiter
-from app.services.ai_service import AIUnavailable
 from app.services.categorizer import model_info
 
 # Built React app, copied here in the Docker image (single-service deploy).
@@ -46,27 +45,7 @@ app = FastAPI(title="JoMoney API")
 
 # Rate limiting (slowapi): limits are declared per-endpoint via @limiter.limit.
 app.state.limiter = limiter
-
-
-@app.exception_handler(RateLimitExceeded)
-async def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
-    """Our own per-minute cap: a friendly, retryable message (not slowapi's raw string)."""
-    return JSONResponse(
-        status_code=429,
-        content={
-            "detail": "You're going a little fast — give it a few seconds and try again.",
-            "code": "rate_limited",
-        },
-    )
-
-
-@app.exception_handler(AIUnavailable)
-async def ai_unavailable_handler(request: Request, exc: AIUnavailable) -> JSONResponse:
-    """Gemini failed transiently (key configured): a retryable 503 for the chat UI."""
-    return JSONResponse(
-        status_code=503,
-        content={"detail": exc.message, "code": "ai_unavailable", "reason": exc.reason},
-    )
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Compress large JSON payloads (e.g. /api/transactions) over ~500 bytes.
 app.add_middleware(GZipMiddleware, minimum_size=500)
@@ -136,7 +115,6 @@ app.include_router(transactions.router)
 app.include_router(subscriptions.router)
 app.include_router(anomalies.router)
 app.include_router(query.router)
-app.include_router(conversations.router)
 app.include_router(analytics.router)
 app.include_router(corrections.router)
 

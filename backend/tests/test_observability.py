@@ -47,17 +47,10 @@ def test_classify_llm_error():
     assert _classify_llm_error(Exception("boom")) == "error"
 
 
-def test_gemini_failure_raises_retryable_with_logged_reason(db, user, monkeypatch):
-    """A Gemini failure (key configured) surfaces a retryable error, classified + counted.
-
-    Since Phase 21, a keyed deployment never silently degrades to a context-less
-    rule-based answer; it raises AIUnavailable (a 503 the chat renders as Retry).
-    """
-    import pytest
-
+def test_gemini_failure_falls_back_with_logged_reason(db, user, monkeypatch):
+    """A Gemini failure must fall back, surface the reason, and be counted."""
     from app.core.config import settings
     from app.services import gemini_provider
-    from app.services.ai_service import AIUnavailable
 
     monkeypatch.setattr(settings, "google_api_key", "test-key")
 
@@ -66,11 +59,10 @@ def test_gemini_failure_raises_retryable_with_logged_reason(db, user, monkeypatc
 
     monkeypatch.setattr(gemini_provider, "gemini_answer", boom)
 
-    before = metrics.snapshot()["counters"].get("query_unavailable_total", 0)
-    with pytest.raises(AIUnavailable) as ei:
-        answer_query(db, user.id, "how much did I spend?")
-    after = metrics.snapshot()["counters"].get("query_unavailable_total", 0)
+    before = metrics.snapshot()["counters"].get("query_fallback_total", 0)
+    result = answer_query(db, user.id, "how much did I spend?")
+    after = metrics.snapshot()["counters"].get("query_fallback_total", 0)
 
-    assert ei.value.reason == "rate_limited"
-    assert ei.value.message  # user-facing copy present
+    assert result["provider"].startswith("rule-based (gemini unavailable: rate_limited")
+    assert result["answer"]  # the deterministic engine still answered
     assert after == before + 1

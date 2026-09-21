@@ -6,7 +6,6 @@ from an ORM object (e.g. TransactionOut.model_validate(transaction_row)).
 """
 
 import datetime
-from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
@@ -140,26 +139,10 @@ class AnomalyOut(BaseModel):
     description: str
 
 
-ChatStyle = Literal["friendly", "numbers", "coach"]
-
-
-class ChatTurn(BaseModel):
-    """One prior turn, supplied by the client for the stateless (demo) chat path."""
-
-    role: Literal["user", "assistant"]
-    content: str = Field(max_length=4000)
-
-
 class QueryRequest(BaseModel):
-    """A natural-language question about the user's finances (stateless path).
+    """A natural-language question about the user's finances."""
 
-    `history` carries prior turns for the demo chat (which persists nothing);
-    it is bounded again server-side before reaching the model.
-    """
-
-    question: str = Field(min_length=1, max_length=500)
-    history: list[ChatTurn] = Field(default=[], max_length=50)
-    style: ChatStyle = "friendly"
+    question: str
 
 
 class QueryResponse(BaseModel):
@@ -168,49 +151,3 @@ class QueryResponse(BaseModel):
     answer: str
     provider: str
     tools_used: list[str] = []
-
-
-class MessageOut(BaseModel):
-    """One stored turn in a persisted conversation."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    role: str
-    content: str
-    tools_used: list[str] | None = None
-    provider: str | None = None
-    created_at: datetime.datetime
-
-
-class ConversationOut(BaseModel):
-    """A conversation in the user's thread list (no messages)."""
-
-    model_config = ConfigDict(from_attributes=True)
-
-    id: int
-    title: str
-    created_at: datetime.datetime
-    updated_at: datetime.datetime
-
-
-class ConversationDetail(ConversationOut):
-    """A conversation with its full message history (for resuming a thread)."""
-
-    messages: list[MessageOut] = []
-
-
-class MessageCreate(BaseModel):
-    """Send a message. Omit `conversation_id` to start a new thread."""
-
-    conversation_id: int | None = None
-    question: str = Field(min_length=1, max_length=500)
-    style: ChatStyle = "friendly"
-
-
-class SendResult(BaseModel):
-    """The result of sending a message: Jo's reply plus the (maybe new) thread."""
-
-    conversation_id: int
-    title: str
-    message: MessageOut

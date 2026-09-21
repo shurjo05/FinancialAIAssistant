@@ -10,7 +10,7 @@ income. This is normalized on ingest so all downstream analysis is consistent.
 
 import datetime
 
-from sqlalchemy import JSON, ForeignKey, func
+from sqlalchemy import ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -125,53 +125,6 @@ class Correction(Base):
     original_confidence: Mapped[float]
     model_version: Mapped[str | None]  # from model_metadata.json; None if rules-only
     created_at: Mapped[datetime.datetime] = mapped_column(server_default=func.now())
-
-
-class Conversation(Base):
-    """A saved chat thread between a user and Jo.
-
-    Only authenticated real users get persisted conversations; the shared demo
-    account uses a stateless in-session chat (nothing written here). History is
-    stored in full, but only a bounded recent window is ever sent to the LLM.
-    """
-
-    __tablename__ = "conversations"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
-    title: Mapped[str]                    # derived from the first question
-    created_at: Mapped[datetime.datetime] = mapped_column(server_default=func.now())
-    # Bumped on every new message, so the conversation list sorts most-recent-first.
-    updated_at: Mapped[datetime.datetime] = mapped_column(
-        server_default=func.now(), onupdate=func.now()
-    )
-
-    # Deleting a conversation (or its owner) cascades to its messages.
-    messages: Mapped[list["Message"]] = relationship(
-        back_populates="conversation",
-        cascade="all, delete-orphan",
-        order_by="Message.created_at",
-    )
-
-
-class Message(Base):
-    """One turn in a conversation: a user question or Jo's answer."""
-
-    __tablename__ = "messages"
-
-    id: Mapped[int] = mapped_column(primary_key=True)
-    conversation_id: Mapped[int] = mapped_column(
-        ForeignKey("conversations.id"), index=True
-    )
-    role: Mapped[str]                     # 'user' | 'assistant'
-    content: Mapped[str]
-    # Assistant turns only: which tools Jo called and which provider answered —
-    # the same transparency we surface on the live query response.
-    tools_used: Mapped[list | None] = mapped_column(JSON, default=None)
-    provider: Mapped[str | None] = mapped_column(default=None)
-    created_at: Mapped[datetime.datetime] = mapped_column(server_default=func.now())
-
-    conversation: Mapped["Conversation"] = relationship(back_populates="messages")
 
 
 class MonthlySummary(Base):
