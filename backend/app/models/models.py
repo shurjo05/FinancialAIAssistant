@@ -138,7 +138,9 @@ class Conversation(Base):
     __tablename__ = "conversations"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
+    # ondelete matches the migration's DB-level cascade (keeps model ↔ migration in
+    # sync for `alembic check`); the relationship cascade below handles ORM deletes.
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
     title: Mapped[str]                    # derived from the first question
     created_at: Mapped[datetime.datetime] = mapped_column(server_default=func.now())
     # Bumped on every new message, so the conversation list sorts most-recent-first.
@@ -161,7 +163,7 @@ class Message(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     conversation_id: Mapped[int] = mapped_column(
-        ForeignKey("conversations.id"), index=True
+        ForeignKey("conversations.id", ondelete="CASCADE"), index=True
     )
     role: Mapped[str]                     # 'user' | 'assistant'
     content: Mapped[str]
