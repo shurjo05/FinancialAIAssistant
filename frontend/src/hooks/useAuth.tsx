@@ -4,7 +4,7 @@ import { api, clearToken, getToken } from "../services/api";
 interface AuthContextValue {
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, captchaToken?: string) => Promise<void>;
   demo: () => Promise<void>;
   logout: () => void;
 }
@@ -19,8 +19,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setTok(access_token);
   };
 
-  const register = async (email: string, password: string) => {
-    await api.register(email, password);
+  const register = async (email: string, password: string, captchaToken?: string) => {
+    await api.register(email, password, captchaToken);
     await login(email, password); // auto-login after registering
   };
 

@@ -16,6 +16,9 @@ class UserCreate(BaseModel):
 
     email: EmailStr
     password: str
+    # Cloudflare Turnstile token from the widget; required only when CAPTCHA is
+    # configured (verified server-side, then discarded — never stored).
+    turnstile_token: str | None = None
 
 
 class PasswordChange(BaseModel):

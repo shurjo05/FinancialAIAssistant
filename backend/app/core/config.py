@@ -48,6 +48,12 @@ class Settings(BaseSettings):
     # the API — a budget backstop that no per-minute rate limit can guarantee.
     gemini_daily_cap: int = 300
 
+    # --- Signup abuse prevention ---
+    # Cloudflare Turnstile secret key (server-side). Blank → CAPTCHA verification
+    # is skipped, so local dev/tests are unchanged. Pair it with the public site
+    # key on the frontend (VITE_TURNSTILE_SITE_KEY); set both or neither.
+    turnstile_secret: str = ""
+
     # Tells pydantic to read a .env file and ignore unknown keys.
     model_config = SettingsConfigDict(
         env_file=".env",

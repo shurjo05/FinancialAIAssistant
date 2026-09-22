@@ -62,11 +62,11 @@ async function authRequest(url: string, init: RequestInit): Promise<Response> {
 export const api = {
   health: () => http<{ status: string }>("/api/health"),
 
-  register: (email: string, password: string) =>
+  register: (email: string, password: string, turnstileToken?: string) =>
     authRequest("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ email, password, turnstile_token: turnstileToken }),
     }),
 
   login: async (email: string, password: string) => {
