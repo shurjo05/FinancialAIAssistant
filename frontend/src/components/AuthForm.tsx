@@ -1,28 +1,37 @@
 import { useState, type FormEvent, type ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Turnstile } from "@marsidev/react-turnstile";
 import { cn } from "../lib/utils";
 import { Logo, ThemeToggle } from "./ui";
+
+// Cloudflare Turnstile public site key (build-time). Unset → widget hidden and
+// the backend skips verification, so signup behaves exactly as before.
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined;
 
 interface Props {
   title: string;
   submitLabel: string;
-  onSubmit: (email: string, password: string) => Promise<void>;
+  onSubmit: (email: string, password: string, captchaToken?: string) => Promise<void>;
   footer: ReactNode;
+  requireCaptcha?: boolean;
 }
 
-export default function AuthForm({ title, submitLabel, onSubmit, footer }: Props) {
+export default function AuthForm({ title, submitLabel, onSubmit, footer, requireCaptcha }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
   const navigate = useNavigate();
+
+  const captchaOn = Boolean(requireCaptcha && TURNSTILE_SITE_KEY);
 
   const handle = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
     setBusy(true);
     try {
-      await onSubmit(email, password);
+      await onSubmit(email, password, captchaToken || undefined);
       navigate("/ask");
     } catch (err) {
       setError((err as Error).message);
@@ -52,13 +61,22 @@ export default function AuthForm({ title, submitLabel, onSubmit, footer }: Props
               onChange={(e) => setEmail(e.target.value)} className={field} />
             <input type="password" required placeholder="Password" value={password}
               onChange={(e) => setPassword(e.target.value)} className={field} />
+            {captchaOn && (
+              <Turnstile
+                siteKey={TURNSTILE_SITE_KEY!}
+                onSuccess={setCaptchaToken}
+                onExpire={() => setCaptchaToken("")}
+                onError={() => setCaptchaToken("")}
+                options={{ theme: "auto" }}
+              />
+            )}
             {error && <p className="text-sm text-down">{error}</p>}
             <button
               type="submit"
-              disabled={busy}
+              disabled={busy || (captchaOn && !captchaToken)}
               className={cn(
                 "grad w-full rounded-xl px-4 py-2.5 text-sm font-medium text-white shadow-pop hover:brightness-110",
-                busy && "opacity-50",
+                (busy || (captchaOn && !captchaToken)) && "opacity-50",
               )}
             >
               {busy ? "…" : submitLabel}

@@ -4,6 +4,11 @@
 
 # ---- Stage 1: build the React frontend ----
 FROM node:22-slim AS frontend
+# Public Cloudflare Turnstile site key — Vite bakes VITE_* into the bundle at
+# build time, so it must be present here (not just at runtime). Safe to embed:
+# the site key is public; the secret stays a backend-only runtime env.
+ARG VITE_TURNSTILE_SITE_KEY=""
+ENV VITE_TURNSTILE_SITE_KEY=$VITE_TURNSTILE_SITE_KEY
 WORKDIR /frontend
 COPY frontend/package.json frontend/package-lock.json ./
 RUN npm ci

@@ -24,3 +24,7 @@ services:
         sync: false
       - key: GOOGLE_API_KEY         # optional; blank -> deterministic rule-based query
         sync: false
+      - key: TURNSTILE_SECRET       # Cloudflare Turnstile secret (backend); blank -> CAPTCHA off
+        sync: false
+      - key: VITE_TURNSTILE_SITE_KEY  # public site key; Render passes it to the Docker build ARG
+        sync: false

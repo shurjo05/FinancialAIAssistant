@@ -5,9 +5,11 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.captcha import verify_turnstile
 from app.core.database import get_db
 from app.core.deps import get_current_user
-from app.core.ratelimit import limiter
+from app.core.email_rules import is_disposable
+from app.core.ratelimit import client_ip, limiter
 from app.core.security import create_access_token, hash_password, verify_password
 from app.models.models import User
 from app.schemas.schemas import PasswordChange, Token, UserCreate, UserOut
@@ -23,7 +25,16 @@ DEMO_EMAIL = "demo@jomoney.app"
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
 @limiter.limit("5/minute")
 def register(request: Request, payload: UserCreate, db: Session = Depends(get_db)) -> User:
-    """Create a new account."""
+    """Create a new account (signup-abuse defenses: disposable-email + CAPTCHA)."""
+    # Cheap offline check first, then the (possibly networked) CAPTCHA.
+    if is_disposable(payload.email):
+        raise HTTPException(
+            status_code=400,
+            detail="Please use a permanent email address — disposable inboxes aren't allowed.",
+        )
+    if not verify_turnstile(payload.turnstile_token, client_ip(request)):
+        raise HTTPException(status_code=400, detail="CAPTCHA verification failed. Please try again.")
+
     exists = db.scalar(select(User).where(User.email == payload.email))
     if exists:
         raise HTTPException(status_code=400, detail="Email already registered.")
