@@ -16,6 +16,17 @@ export const fmtDate = (iso: string) =>
     month: "short", day: "numeric", year: "numeric",
   });
 
+/** "just now" / "5 min ago" / "3 hr ago" / "Mar 15" for a server timestamp (UTC). */
+export function fmtAgo(iso: string) {
+  // The API emits naive UTC timestamps; pin them to UTC before parsing.
+  const t = new Date(/[zZ]|[+-]\d\d:?\d\d$/.test(iso) ? iso : iso + "Z").getTime();
+  const mins = Math.round((Date.now() - t) / 60_000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  if (mins < 24 * 60) return `${Math.round(mins / 60)} hr ago`;
+  return new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 /** Consistent colors per category across every chart and badge. */
 export const CATEGORY_COLORS: Record<string, string> = {
   income: "#16a34a", rent: "#7c3aed", groceries: "#059669",

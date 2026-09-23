@@ -94,6 +94,19 @@ def fallback_answer(db: Session, user_id: int, question: str) -> tuple[str, list
     rng = tools.date_range(db, user_id)
     year = int(rng["start"][:4]) if rng["start"] else 2024
 
+    # Phrases specific to holdings, so "how many subscriptions do I have?" still
+    # routes to subscriptions below.
+    if any(w in q for w in ("balance", "net worth", "how much money", "how much do i have",
+                            "checking", "savings account", "my accounts")):
+        d = tools.account_balances(db, user_id)
+        if not d["count"]:
+            return ("You don't have any connected accounts yet — connect a bank on the "
+                    "Upload page to see balances.", ["account_balances"])
+        sample = " (sample demo accounts)" if d["sample"] else ""
+        return (f"Your net worth is ${d['net_worth']:,.2f} across {d['count']} accounts{sample}: "
+                f"${d['assets']:,.2f} in assets and ${d['liabilities']:,.2f} owed.",
+                ["account_balances"])
+
     if "bill" in q or "recurring payment" in q:
         d = tools.list_recurring_bills(db, user_id)
         return (

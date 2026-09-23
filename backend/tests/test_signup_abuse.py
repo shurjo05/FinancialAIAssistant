@@ -29,13 +29,13 @@ def test_is_disposable_is_case_insensitive():
 
 
 def test_register_rejects_disposable_email(client):
-    r = client.post("/api/auth/register", json={"email": "bot@mailinator.com", "password": "pw123456"})
+    r = client.post("/api/auth/register", json={"email": "bot@mailinator.com", "password": "Pw12345!"})
     assert r.status_code == 400
     assert "disposable" in r.json()["detail"].lower()
 
 
 def test_register_allows_normal_email(client):
-    r = client.post("/api/auth/register", json={"email": "real@example.com", "password": "pw123456"})
+    r = client.post("/api/auth/register", json={"email": "real@example.com", "password": "Pw12345!"})
     assert r.status_code == 201
 
 
@@ -74,7 +74,7 @@ def test_register_blocks_invalid_captcha(client, monkeypatch):
     monkeypatch.setattr(captcha.httpx, "post", lambda *a, **k: _FakeResp(False))
     r = client.post(
         "/api/auth/register",
-        json={"email": "new@example.com", "password": "pw123456", "turnstile_token": "bad"},
+        json={"email": "new@example.com", "password": "Pw12345!", "turnstile_token": "bad"},
     )
     assert r.status_code == 400
     assert "captcha" in r.json()["detail"].lower()
@@ -85,6 +85,6 @@ def test_register_passes_valid_captcha(client, monkeypatch):
     monkeypatch.setattr(captcha.httpx, "post", lambda *a, **k: _FakeResp(True))
     r = client.post(
         "/api/auth/register",
-        json={"email": "new2@example.com", "password": "pw123456", "turnstile_token": "good"},
+        json={"email": "new2@example.com", "password": "Pw12345!", "turnstile_token": "good"},
     )
     assert r.status_code == 201

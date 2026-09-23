@@ -73,6 +73,36 @@ class PlaidItem(Base):
     created_at: Mapped[datetime.datetime] = mapped_column(server_default=func.now())
 
 
+class Account(Base):
+    """A bank account and its latest balance.
+
+    Filled from Plaid on connect/sync (`source='plaid'`), or seeded with clearly
+    labeled synthetic accounts for the demo (`source='sample'`). CSV uploads carry
+    no reliable balance, so CSV-only users have none.
+
+    Balance sign follows Plaid: `current_balance` is money held for depository /
+    investment accounts and money OWED for credit / loan accounts (both positive).
+    """
+
+    __tablename__ = "accounts"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    source: Mapped[str]                         # 'plaid' | 'sample'
+    external_id: Mapped[str | None]             # Plaid account_id (None for sample)
+    institution_name: Mapped[str | None]
+    name: Mapped[str]
+    mask: Mapped[str | None]                    # last 4 digits
+    type: Mapped[str]                           # depository | credit | loan | investment | other
+    subtype: Mapped[str | None]                 # checking | savings | credit card | ...
+    current_balance: Mapped[float | None]
+    available_balance: Mapped[float | None]
+    currency: Mapped[str] = mapped_column(default="USD", server_default="USD")
+    updated_at: Mapped[datetime.datetime] = mapped_column(
+        server_default=func.now(), onupdate=func.now()
+    )
+
+
 class Transaction(Base):
     """A normalized transaction row: cleaned, categorized, and flagged."""
 

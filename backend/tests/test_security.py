@@ -21,24 +21,24 @@ def test_change_password_wrong_current_rejected(client, auth_token):
     r = client.post(
         "/api/auth/change-password",
         headers=h,
-        json={"current_password": "wrongpass", "new_password": "newpass12"},
+        json={"current_password": "wrongpass", "new_password": "NewPass12!"},
     )
     assert r.status_code == 401
 
 
 def test_change_password_revokes_old_and_new_works(client, auth_token):
-    h = {"Authorization": f"Bearer {auth_token('cp2@example.com')}"}  # pw123456
+    h = {"Authorization": f"Bearer {auth_token('cp2@example.com')}"}  # Pw12345!
     r = client.post(
         "/api/auth/change-password",
         headers=h,
-        json={"current_password": "pw123456", "new_password": "newpass12"},
+        json={"current_password": "Pw12345!", "new_password": "NewPass12!"},
     )
     assert r.status_code == 200
     assert client.get("/api/transactions", headers=h).status_code == 401  # old token dead
 
-    ok = client.post("/api/auth/login", data={"username": "cp2@example.com", "password": "newpass12"})
+    ok = client.post("/api/auth/login", data={"username": "cp2@example.com", "password": "NewPass12!"})
     assert ok.status_code == 200 and ok.json()["access_token"]
-    bad = client.post("/api/auth/login", data={"username": "cp2@example.com", "password": "pw123456"})
+    bad = client.post("/api/auth/login", data={"username": "cp2@example.com", "password": "Pw12345!"})
     assert bad.status_code == 401
 
 

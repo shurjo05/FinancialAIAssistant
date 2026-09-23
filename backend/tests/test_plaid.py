@@ -20,10 +20,12 @@ def _configure(monkeypatch):
     monkeypatch.setattr(settings, "plaid_secret", "test-secret")
 
 
-def _stub_exchange(monkeypatch, item_id="item-123", token="access-secret-xyz", inst="Test Bank"):
+def _stub_exchange(monkeypatch, item_id="item-123", token="access-secret-xyz", inst="Test Bank",
+                   accounts=()):
     from app.services import plaid_client
     monkeypatch.setattr(plaid_client, "exchange_public_token", lambda pt: (item_id, token))
     monkeypatch.setattr(plaid_client, "get_institution_name", lambda at: inst)
+    monkeypatch.setattr(plaid_client, "get_accounts", lambda at: list(accounts))
 
 
 # ── Feature flag / status ─────────────────────────────────────────────────

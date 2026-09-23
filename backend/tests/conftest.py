@@ -85,7 +85,7 @@ def user(db):
     from app.core.security import hash_password
     from app.models.models import User
 
-    u = User(email="direct@example.com", hashed_password=hash_password("pw123456"))
+    u = User(email="direct@example.com", hashed_password=hash_password("Pw12345!"))
     db.add(u)
     db.commit()
     db.refresh(u)
@@ -95,7 +95,7 @@ def user(db):
 @pytest.fixture
 def auth_token(client):
     """Factory: register + login an email, return its bearer token."""
-    def _make(email: str, password: str = "pw123456") -> str:
+    def _make(email: str, password: str = "Pw12345!") -> str:
         client.post("/api/auth/register", json={"email": email, "password": password})
         resp = client.post("/api/auth/login", data={"username": email, "password": password})
         return resp.json()["access_token"]

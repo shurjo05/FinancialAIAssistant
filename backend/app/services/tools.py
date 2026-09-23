@@ -14,7 +14,7 @@ import datetime
 from sqlalchemy import case, extract, func, select
 from sqlalchemy.orm import Session
 
-from app.models.models import Anomaly, Subscription, Transaction
+from app.models.models import Account, Anomaly, Subscription, Transaction
 
 
 def _parse_date(value: str | None) -> datetime.date | None:
@@ -205,6 +205,45 @@ def list_anomalies(db: Session, user_id: int) -> dict:
             for a in rows
         ],
     }
+
+
+# Account types whose balance is money owed rather than money held (Plaid's sign
+# convention: both are reported as positive numbers).
+_LIABILITY_TYPES = ("credit", "loan")
+
+
+def account_balances(db: Session, user_id: int) -> dict:
+    """Current balance of each connected account, plus assets, debts, and net worth."""
+    rows = db.scalars(select(Account).where(Account.user_id == user_id)).all()
+    # Money held first (largest first), then money owed.
+    rows = sorted(rows, key=lambda a: (a.type in _LIABILITY_TYPES, -(a.current_balance or 0)))
+
+    assets = sum(a.current_balance or 0 for a in rows if a.type not in _LIABILITY_TYPES)
+    debts = sum(a.current_balance or 0 for a in rows if a.type in _LIABILITY_TYPES)
+    sample = any(a.source == "sample" for a in rows)
+    as_of = max((a.updated_at for a in rows), default=None)
+
+    result = {
+        "count": len(rows),
+        "assets": round(assets, 2),
+        "liabilities": round(debts, 2),
+        "net_worth": round(assets - debts, 2),
+        "as_of": as_of.isoformat() if as_of else None,
+        "sample": sample,
+        "accounts": [
+            {"id": a.id, "name": a.name, "institution": a.institution_name,
+             "mask": a.mask, "type": a.type, "subtype": a.subtype,
+             "is_liability": a.type in _LIABILITY_TYPES,
+             "current_balance": a.current_balance,
+             "available_balance": a.available_balance,
+             "currency": a.currency}
+            for a in rows
+        ],
+    }
+    if sample:
+        # Tells Jo (and anyone reading the tool output) these aren't real balances.
+        result["note"] = "These are sample demo accounts, not real bank balances."
+    return result
 
 
 def monthly_trend(db: Session, user_id: int) -> list[dict]:

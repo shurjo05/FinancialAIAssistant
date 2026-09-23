@@ -124,6 +124,33 @@ export interface PlaidSyncResult {
   institution_name: string | null;
 }
 
+export interface BankAccount {
+  id: number;
+  name: string;
+  institution: string | null;
+  mask: string | null;
+  type: string;
+  subtype: string | null;
+  /** Credit/loan: the balance is money owed, not money held. */
+  is_liability: boolean;
+  current_balance: number | null;
+  available_balance: number | null;
+  currency: string;
+}
+
+export interface AccountBalances {
+  count: number;
+  assets: number;
+  liabilities: number;
+  net_worth: number;
+  as_of: string | null;
+  /** True when these are the demo's synthetic accounts. */
+  sample: boolean;
+  /** Has a Plaid connection, even if balances haven't loaded yet. */
+  bank_connected: boolean;
+  accounts: BankAccount[];
+}
+
 export interface MerchantTotal {
   merchant: string;
   total: number;

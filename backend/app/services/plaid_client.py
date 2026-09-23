@@ -14,6 +14,7 @@ import datetime
 
 import plaid
 from plaid.api import plaid_api
+from plaid.model.accounts_get_request import AccountsGetRequest
 from plaid.model.country_code import CountryCode
 from plaid.model.institutions_get_by_id_request import InstitutionsGetByIdRequest
 from plaid.model.item_get_request import ItemGetRequest
@@ -79,6 +80,37 @@ def get_institution_name(access_token: str) -> str | None:
     except Exception:
         logger.warning("could not resolve institution name")
         return None
+
+
+def _enum_str(value) -> str | None:
+    """Plaid SDK enums (AccountType / AccountSubtype) → plain strings."""
+    if value is None:
+        return None
+    return str(getattr(value, "value", value))
+
+
+def get_accounts(access_token: str) -> list[dict]:
+    """The item's accounts with their latest balances (/accounts/get).
+
+    Uses the cached balances Plaid returns for free with /accounts/get rather than
+    the real-time /accounts/balance/get (billed per call in production) — plenty
+    for a dashboard that refreshes on every sync.
+    """
+    resp = _client().accounts_get(AccountsGetRequest(access_token=access_token))
+    out = []
+    for a in resp.accounts:
+        bal = a.balances
+        out.append({
+            "external_id": a.account_id,
+            "name": getattr(a, "official_name", None) or a.name,
+            "mask": getattr(a, "mask", None),
+            "type": _enum_str(a.type) or "other",
+            "subtype": _enum_str(getattr(a, "subtype", None)),
+            "current_balance": getattr(bal, "current", None),
+            "available_balance": getattr(bal, "available", None),
+            "currency": getattr(bal, "iso_currency_code", None) or "USD",
+        })
+    return out
 
 
 def _to_row(txn) -> dict:

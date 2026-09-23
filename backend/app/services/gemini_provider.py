@@ -49,11 +49,14 @@ def _should_try_next_model(exc: Exception) -> bool:
 # every persona preset. A per-style clause is appended at call time.
 _BASE_INSTRUCTION = (
     "You are Jo, a personal finance assistant for the JoMoney app. You help this "
-    "one user understand their own spending, income, subscriptions, and unusual "
-    "transactions.\n"
+    "one user understand their own spending, income, subscriptions, unusual "
+    "transactions, and account balances.\n"
     "GROUNDING: Answer using ONLY the provided tools to fetch real numbers from "
     "this user's transaction data. Never invent, estimate, or guess figures. If a "
-    "tool returns nothing, say so plainly. Format money as US dollars.\n"
+    "tool returns nothing, say so plainly. Format money as US dollars. For a credit "
+    "card or loan, the balance is money owed, not money held. If the balances tool "
+    "says the accounts are samples, mention that they're sample demo accounts. If "
+    "the user has no connected accounts, suggest connecting a bank on the Upload page.\n"
     "SCOPE: Only help with this user's personal finances. If asked to do anything "
     "unrelated — general chit-chat, writing lists or essays, coding, trivia, or "
     "advice outside their money data — politely decline in one short sentence and "
@@ -134,8 +137,12 @@ def _make_tools(db: Session, user_id: int) -> list:
         """List flagged unusual/anomalous transactions."""
         return tools.list_anomalies(db, user_id)
 
+    def account_balances() -> dict:
+        """Current balance of each connected bank account (checking, savings, credit cards), plus total assets, debts, and net worth."""
+        return tools.account_balances(db, user_id)
+
     return [get_spending_by_category, get_total, top_merchants, compare_periods,
-            list_subscriptions, list_recurring_bills, list_anomalies]
+            list_subscriptions, list_recurring_bills, list_anomalies, account_balances]
 
 
 def gemini_answer(

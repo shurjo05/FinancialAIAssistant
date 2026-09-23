@@ -12,7 +12,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 
 class UserCreate(BaseModel):
-    """Registration / login payload."""
+    """Registration payload (strength rules are checked in the endpoint)."""
 
     email: EmailStr
     password: str
@@ -25,7 +25,7 @@ class PasswordChange(BaseModel):
     """Change-password payload."""
 
     current_password: str
-    new_password: str = Field(min_length=8)
+    new_password: str
 
 
 class UserOut(BaseModel):
@@ -207,6 +207,34 @@ class ClearDataResult(BaseModel):
     """Summary after clearing an account's data."""
 
     transactions_deleted: int
+
+
+class AccountOut(BaseModel):
+    """One bank account and its latest balance."""
+
+    id: int
+    name: str
+    institution: str | None = None
+    mask: str | None = None
+    type: str
+    subtype: str | None = None
+    is_liability: bool              # credit/loan: the balance is money owed
+    current_balance: float | None = None
+    available_balance: float | None = None
+    currency: str = "USD"
+
+
+class AccountBalances(BaseModel):
+    """All of a user's accounts plus totals (net worth = assets - liabilities)."""
+
+    count: int
+    assets: float
+    liabilities: float
+    net_worth: float
+    as_of: datetime.datetime | None = None
+    sample: bool                    # True when these are the demo's synthetic accounts
+    bank_connected: bool = False    # has a Plaid item (so a refresh can load balances)
+    accounts: list[AccountOut] = []
 
 
 class PlaidStatus(BaseModel):

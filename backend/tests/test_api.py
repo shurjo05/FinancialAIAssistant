@@ -27,11 +27,11 @@ def test_protected_endpoint_requires_auth(client):
 
 
 def test_register_and_login(client):
-    r = client.post("/api/auth/register", json={"email": "new@example.com", "password": "pw123456"})
+    r = client.post("/api/auth/register", json={"email": "new@example.com", "password": "Pw12345!"})
     assert r.status_code == 201
     assert r.json()["email"] == "new@example.com"
 
-    r = client.post("/api/auth/login", data={"username": "new@example.com", "password": "pw123456"})
+    r = client.post("/api/auth/login", data={"username": "new@example.com", "password": "Pw12345!"})
     assert r.status_code == 200
     assert r.json()["access_token"]
 
@@ -44,7 +44,7 @@ def test_demo_login_loads_sample_data(client):
 
 
 def test_login_wrong_password_rejected(client):
-    client.post("/api/auth/register", json={"email": "x@example.com", "password": "correct1"})
+    client.post("/api/auth/register", json={"email": "x@example.com", "password": "Correct1!"})
     r = client.post("/api/auth/login", data={"username": "x@example.com", "password": "wrong"})
     assert r.status_code == 401
 
