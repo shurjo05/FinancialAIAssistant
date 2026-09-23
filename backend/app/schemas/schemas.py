@@ -203,6 +203,44 @@ class ConversationDetail(ConversationOut):
     messages: list[MessageOut] = []
 
 
+class ClearDataResult(BaseModel):
+    """Summary after clearing an account's data."""
+
+    transactions_deleted: int
+
+
+class PlaidStatus(BaseModel):
+    """Whether the Plaid "connect a bank" feature is configured on the server."""
+
+    configured: bool
+
+
+class LinkTokenOut(BaseModel):
+    """A Plaid Link token the frontend widget uses to start the connect flow."""
+
+    link_token: str
+
+
+class PlaidExchangeRequest(BaseModel):
+    """The public_token Plaid Link returns on success, to exchange for access."""
+
+    public_token: str
+
+
+class PlaidItemOut(BaseModel):
+    """A connected Plaid item (bank), minus any secret material."""
+
+    item_id: str
+    institution_name: str | None = None
+
+
+class PlaidSyncResult(BaseModel):
+    """Result of syncing: how many new transactions were pulled in."""
+
+    added: int
+    institution_name: str | None = None
+
+
 class MessageCreate(BaseModel):
     """Send a message. Omit `conversation_id` to start a new thread."""
 

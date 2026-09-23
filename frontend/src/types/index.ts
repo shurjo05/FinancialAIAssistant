@@ -106,6 +106,24 @@ export interface SendResult {
   message: ChatMessage;
 }
 
+export interface PlaidStatus {
+  configured: boolean;
+}
+
+export interface LinkTokenResponse {
+  link_token: string;
+}
+
+export interface PlaidItemResult {
+  item_id: string;
+  institution_name: string | null;
+}
+
+export interface PlaidSyncResult {
+  added: number;
+  institution_name: string | null;
+}
+
 export interface MerchantTotal {
   merchant: string;
   total: number;

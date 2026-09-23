@@ -17,11 +17,13 @@ from sqlalchemy import text
 from starlette.staticfiles import StaticFiles
 
 from app.api import (
+    account,
     analytics,
     anomalies,
     auth,
     conversations,
     corrections,
+    plaid,
     query,
     subscriptions,
     transactions,
@@ -139,6 +141,8 @@ app.include_router(query.router)
 app.include_router(conversations.router)
 app.include_router(analytics.router)
 app.include_router(corrections.router)
+app.include_router(plaid.router)
+app.include_router(account.router)
 
 
 # Serve the built React app from the same origin (single-service deploy). Only
