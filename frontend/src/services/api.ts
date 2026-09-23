@@ -3,7 +3,8 @@
 
 import type {
   Anomaly, ChatMessage, ChatStyle, ConversationDetail, ConversationSummary,
-  Correction, MonthlyPoint, QueryResponse, SendResult, Subscription, Summary,
+  Correction, LinkTokenResponse, MonthlyPoint, PlaidItemResult, PlaidStatus,
+  PlaidSyncResult, QueryResponse, SendResult, Subscription, Summary,
   Transaction, TransactionList, UploadResult,
 } from "../types";
 
@@ -161,4 +162,18 @@ export const api = {
   },
 
   loadSample: () => http<UploadResult>("/api/load-sample", { method: "POST" }),
+
+  clearData: () =>
+    http<{ transactions_deleted: number }>("/api/account/clear-data", { method: "POST" }),
+
+  // --- Plaid (sandbox) ---
+  plaidStatus: () => http<PlaidStatus>("/api/plaid/status"),
+  plaidLinkToken: () => http<LinkTokenResponse>("/api/plaid/link-token", { method: "POST" }),
+  plaidExchange: (public_token: string) =>
+    http<PlaidItemResult>("/api/plaid/exchange", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ public_token }),
+    }),
+  plaidSync: () => http<PlaidSyncResult>("/api/plaid/sync", { method: "POST" }),
 };

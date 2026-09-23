@@ -54,6 +54,23 @@ class Settings(BaseSettings):
     # key on the frontend (VITE_TURNSTILE_SITE_KEY); set both or neither.
     turnstile_secret: str = ""
 
+    # --- Bank sync: Plaid (optional; sandbox) ---
+    # Blank client id/secret → the "connect a bank" feature is disabled (endpoints
+    # 503, button hidden), app otherwise unchanged. Sandbox uses fake institutions
+    # and the test login user_good / pass_good — never real bank credentials.
+    plaid_client_id: str = ""
+    plaid_secret: str = ""
+    plaid_env: str = "sandbox"
+    # Fernet key for encrypting Plaid access tokens at rest (generate with
+    # `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`).
+    # Blank → dev/test only, an ephemeral per-process key is used; PRODUCTION MUST
+    # set this or a restart can't decrypt previously stored tokens.
+    plaid_encryption_key: str = ""
+
+    @property
+    def plaid_configured(self) -> bool:
+        return bool(self.plaid_client_id and self.plaid_secret)
+
     # Tells pydantic to read a .env file and ignore unknown keys.
     model_config = SettingsConfigDict(
         env_file=".env",

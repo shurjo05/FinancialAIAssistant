@@ -31,7 +31,7 @@ class User(Base):
 
 
 class Upload(Base):
-    """A single CSV import. Parent of every transaction it produced."""
+    """A single ingest batch (a CSV import or a Plaid sync). Parent of its transactions."""
 
     __tablename__ = "uploads"
 
@@ -44,11 +44,33 @@ class Upload(Base):
     date_range_start: Mapped[datetime.date | None]
     date_range_end: Mapped[datetime.date | None]
     status: Mapped[str] = mapped_column(default="processing")
+    # Where the rows came from: 'csv' or 'plaid'.
+    source: Mapped[str] = mapped_column(default="csv", server_default="csv")
 
     # Deleting an upload cascades to its transactions (orphan cleanup).
     transactions: Mapped[list["Transaction"]] = relationship(
         back_populates="upload", cascade="all, delete-orphan"
     )
+
+
+class PlaidItem(Base):
+    """A user's connection to one institution via Plaid (sandbox).
+
+    One row per connected bank; we keep a single item per user for now. The
+    `access_token` is stored Fernet-ENCRYPTED (never plaintext) and decrypted
+    just-in-time to call Plaid. `cursor` tracks incremental /transactions/sync.
+    """
+
+    __tablename__ = "plaid_items"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    # ondelete declared to match the migration (keeps `alembic check` green).
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    item_id: Mapped[str] = mapped_column(unique=True, index=True)  # Plaid's item id
+    access_token: Mapped[str]                # Fernet-encrypted at rest
+    institution_name: Mapped[str | None]
+    cursor: Mapped[str | None]               # /transactions/sync incremental cursor
+    created_at: Mapped[datetime.datetime] = mapped_column(server_default=func.now())
 
 
 class Transaction(Base):

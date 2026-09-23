@@ -26,17 +26,23 @@ MAX_UPLOAD_BYTES = 5 * 1024 * 1024  # 5 MB
 MAX_ROWS = 10_000
 
 
-def _ingest(
-    db: Session, background_tasks: BackgroundTasks, user_id: int, filename: str, text: str
+def persist_rows(
+    db: Session,
+    background_tasks: BackgroundTasks,
+    user_id: int,
+    source_name: str,
+    rows: list[dict],
+    source: str = "csv",
+    errors: list | None = None,
 ) -> UploadResult:
-    """Shared pipeline: parse -> categorize -> persist -> schedule detectors."""
+    """Persist already-parsed rows: categorize -> bulk-insert -> schedule detectors.
+
+    Shared by the CSV path (which parses first) and the Plaid path (which maps
+    Plaid JSON to the same row dicts first). `rows` are dicts with keys: date,
+    description, merchant_normalized, amount, transaction_type.
+    """
     started = time.perf_counter()
-    rows, errors = parse_csv(io.StringIO(text))
-    if not rows and errors:
-        raise HTTPException(
-            status_code=422,
-            detail=f"Could not parse any rows: {errors[0]['issue']}",
-        )
+    errors = errors or []
     if len(rows) > MAX_ROWS:
         raise HTTPException(
             status_code=413,
@@ -46,11 +52,12 @@ def _ingest(
     dates = [r["date"] for r in rows]
     upload = Upload(
         user_id=user_id,
-        filename=filename,
+        filename=source_name,
         row_count=len(rows),
         date_range_start=min(dates) if dates else None,
         date_range_end=max(dates) if dates else None,
         status="complete",
+        source=source,
     )
     db.add(upload)
     db.flush()  # assigns upload.id without committing yet
@@ -85,7 +92,7 @@ def _ingest(
 
     # Observability: ingest latency, volume, and low-confidence rate (feeds the
     # Phase 14 active-learning work). No financial values are recorded.
-    metrics.observe_ms("csv_ingest", (time.perf_counter() - started) * 1000)
+    metrics.observe_ms(f"{source}_ingest", (time.perf_counter() - started) * 1000)
     metrics.incr("transactions_ingested_total", len(mappings))
     metrics.incr(
         "low_confidence_categorizations",
@@ -105,6 +112,19 @@ def _ingest(
         status=upload.status,
         errors=errors,
     )
+
+
+def _ingest(
+    db: Session, background_tasks: BackgroundTasks, user_id: int, filename: str, text: str
+) -> UploadResult:
+    """CSV path: parse the text, then hand the rows to the shared persist pipeline."""
+    rows, errors = parse_csv(io.StringIO(text))
+    if not rows and errors:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Could not parse any rows: {errors[0]['issue']}",
+        )
+    return persist_rows(db, background_tasks, user_id, filename, rows, source="csv", errors=errors)
 
 
 @router.post("/upload", response_model=UploadResult)

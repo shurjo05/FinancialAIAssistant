@@ -19,6 +19,12 @@ if not _TEST_DB_URL:
     _TEST_DB_URL = f"sqlite:///{Path(_TMP_DIR, 'test.db').as_posix()}"
 os.environ["DATABASE_URL"] = _TEST_DB_URL
 os.environ["GOOGLE_API_KEY"] = ""  # force deterministic rule-based query path
+# Neutralize optional feature keys so a developer's local .env can't change test
+# behavior (env vars take precedence over .env in pydantic-settings): CAPTCHA off
+# and Plaid off by default, matching CI where no .env exists.
+os.environ["TURNSTILE_SECRET"] = ""
+os.environ["PLAID_CLIENT_ID"] = ""
+os.environ["PLAID_SECRET"] = ""
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402

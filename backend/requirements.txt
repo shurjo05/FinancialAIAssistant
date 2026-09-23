@@ -23,6 +23,10 @@ email-validator>=2.0       # EmailStr validation
 
 # --- Security ---
 slowapi>=0.1.9             # request rate limiting (brute-force / abuse defense)
+cryptography>=42.0         # Fernet — encrypts Plaid access tokens at rest
+
+# --- Bank sync (optional; sandbox) ---
+plaid-python>=18.0,<45     # Plaid Link -> token exchange -> /transactions/sync
 
 # --- AI providers (all optional at runtime) ---
 httpx>=0.27                   # talks to local Ollama
