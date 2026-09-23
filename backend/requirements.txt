@@ -17,7 +17,7 @@ python-dateutil>=2.9          # robust date parsing fallback
 pydantic-settings>=2.0,<3.0
 
 # --- Auth ---
-bcrypt>=4.0                # password hashing
+bcrypt>=5.0.0                # password hashing
 python-jose[cryptography]>=3.3  # JWT create/verify
 email-validator>=2.0       # EmailStr validation
 
