@@ -1,4 +1,4 @@
-"""Account management endpoints (e.g. clearing your own data)."""
+"""Account endpoints: balances of connected bank accounts, and clearing your own data."""
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import delete, func, select
@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.models import (
+    Account,
     Anomaly,
     Conversation,
     Correction,
@@ -18,9 +19,26 @@ from app.models.models import (
     Upload,
     User,
 )
-from app.schemas.schemas import ClearDataResult
+from app.schemas.schemas import AccountBalances, ClearDataResult
+from app.services import tools
 
 router = APIRouter(prefix="/api/account", tags=["account"])
+
+
+@router.get("/balances", response_model=AccountBalances)
+def balances(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+) -> AccountBalances:
+    """Connected accounts with their latest balances, plus net worth.
+
+    Same computation Jo's `account_balances` tool uses, so the dashboard and the
+    chat can never disagree.
+    """
+    connected = db.scalar(select(PlaidItem.id).where(PlaidItem.user_id == user.id)) is not None
+    return AccountBalances.model_validate(
+        {**tools.account_balances(db, user.id), "bank_connected": connected}
+    )
 
 
 @router.post("/clear-data", response_model=ClearDataResult)
@@ -51,6 +69,7 @@ def clear_data(
     db.execute(delete(Transaction).where(Transaction.user_id == user.id))
     db.execute(delete(Upload).where(Upload.user_id == user.id))
     db.execute(delete(PlaidItem).where(PlaidItem.user_id == user.id))
+    db.execute(delete(Account).where(Account.user_id == user.id))
     db.commit()
 
     return ClearDataResult(transactions_deleted=tx_count)

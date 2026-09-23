@@ -9,10 +9,12 @@ from app.core.captcha import verify_turnstile
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.core.email_rules import is_disposable
+from app.core.password_policy import password_error
 from app.core.ratelimit import client_ip, limiter
 from app.core.security import create_access_token, hash_password, verify_password
 from app.models.models import User
 from app.schemas.schemas import PasswordChange, Token, UserCreate, UserOut
+from app.services.accounts import seed_sample_accounts
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -32,6 +34,8 @@ def register(request: Request, payload: UserCreate, db: Session = Depends(get_db
             status_code=400,
             detail="Please use a permanent email address — disposable inboxes aren't allowed.",
         )
+    if error := password_error(payload.password):
+        raise HTTPException(status_code=400, detail=error)
     if not verify_turnstile(payload.turnstile_token, client_ip(request)):
         raise HTTPException(status_code=400, detail="CAPTCHA verification failed. Please try again.")
 
@@ -91,6 +95,11 @@ def demo_login(
         text = SAMPLE_CSV.read_text(encoding="utf-8-sig")
         _ingest(db, background_tasks, user.id, "sample_transactions.csv", text)
 
+    # Synthetic, clearly labeled balances so the demo shows the accounts feature
+    # (the sample CSV itself carries no balances). No-op once seeded.
+    seed_sample_accounts(db, user.id)
+    db.commit()
+
     return Token(access_token=create_access_token(str(user.id), user.token_version))
 
 
@@ -114,6 +123,8 @@ def change_password(
     """Change the password and revoke all existing sessions."""
     if not verify_password(payload.current_password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Current password is incorrect.")
+    if error := password_error(payload.new_password):
+        raise HTTPException(status_code=400, detail=error)
     user.hashed_password = hash_password(payload.new_password)
     user.token_version += 1  # a password change ends every existing session
     db.commit()

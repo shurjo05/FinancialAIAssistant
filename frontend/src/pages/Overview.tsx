@@ -5,6 +5,7 @@ import {
 } from "recharts";
 import { api } from "../services/api";
 import { Card, StatCard, Spinner, NoData, PageHeader } from "../components/ui";
+import { AccountsPanel } from "../components/Accounts";
 import { fmtUSD, colorFor } from "../lib/utils";
 
 const INCOME = "#22c55e";
@@ -35,6 +36,8 @@ export default function Overview() {
         title="Overview"
         subtitle={s.date_range.start ? `${s.date_range.start} → ${s.date_range.end}` : undefined}
       />
+
+      <AccountsPanel />
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
         <StatCard label="Total spending" value={fmtUSD(s.total_spending)} />

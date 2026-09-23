@@ -15,6 +15,7 @@ from app.core.config import settings
 from app.core.crypto import decrypt, encrypt
 from app.core.database import get_db
 from app.core.deps import get_current_user
+from app.core.logging import get_logger
 from app.models.models import PlaidItem, User
 from app.schemas.schemas import (
     LinkTokenOut,
@@ -24,6 +25,9 @@ from app.schemas.schemas import (
     PlaidSyncResult,
 )
 from app.services import plaid_client
+from app.services.accounts import replace_plaid_accounts
+
+logger = get_logger("app.plaid")
 
 router = APIRouter(prefix="/api/plaid", tags=["plaid"])
 
@@ -31,6 +35,16 @@ router = APIRouter(prefix="/api/plaid", tags=["plaid"])
 def _require_plaid() -> None:
     if not settings.plaid_configured:
         raise HTTPException(status_code=503, detail="Bank connections aren't configured on this server.")
+
+
+def _refresh_accounts(db: Session, user_id: int, access_token: str, institution: str | None) -> None:
+    """Pull the latest balances. Best-effort: a failure here never blocks a sync."""
+    try:
+        accounts = plaid_client.get_accounts(access_token)
+    except Exception:
+        logger.warning("could not refresh plaid account balances")
+        return
+    replace_plaid_accounts(db, user_id, institution, accounts)
 
 
 @router.get("/status", response_model=PlaidStatus)
@@ -66,6 +80,7 @@ def exchange(
     item.access_token = encrypt(access_token)  # encrypted at rest
     item.institution_name = institution
     item.cursor = None                         # start a fresh sync
+    _refresh_accounts(db, user.id, access_token, institution)
     db.commit()
     return PlaidItemOut(item_id=item_id, institution_name=institution)
 
@@ -85,6 +100,7 @@ def sync(
     access_token = decrypt(item.access_token)
     rows, next_cursor = plaid_client.sync_transactions(access_token, item.cursor)
     item.cursor = next_cursor
+    _refresh_accounts(db, user.id, access_token, item.institution_name)
     if rows:
         # persist_rows commits (transactions + the cursor change); else commit the cursor alone.
         persist_rows(db, background_tasks, user.id, item.institution_name or "Plaid", rows, source="plaid")

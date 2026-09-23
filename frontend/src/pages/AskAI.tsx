@@ -4,6 +4,8 @@ import { Sparkles, Send, Plus, Trash2, MessageSquare, RotateCw } from "lucide-re
 import ReactMarkdown from "react-markdown";
 import { api, isDemo } from "../services/api";
 import { PageHeader, Spark } from "../components/ui";
+import { BalancePanel, BalanceStrip } from "../components/Accounts";
+import { useBalances } from "../hooks/useBalances";
 import { cn } from "../lib/utils";
 import type { ChatMessage, ChatStyle } from "../types";
 
@@ -35,6 +37,8 @@ const SUGGESTIONS = [
   "Anything unusual last month?",
 ];
 
+const BALANCE_SUGGESTION = "How much money do I have across my accounts?";
+
 const STYLES: { id: ChatStyle; label: string }[] = [
   { id: "friendly", label: "Friendly" },
   { id: "numbers", label: "Just the numbers" },
@@ -45,6 +49,7 @@ const STYLE_KEY = "finance_ai_style";
 export default function AskAI() {
   const demo = isDemo();
   const qc = useQueryClient();
+  const balances = useBalances();
 
   const [style, setStyle] = useState<ChatStyle>(
     () => (localStorage.getItem(STYLE_KEY) as ChatStyle) || "friendly",
@@ -131,6 +136,9 @@ export default function AskAI() {
   };
 
   const showSuggestions = messages.length === 0 && !send.isPending;
+  // Offer a balances question once there are accounts to ask about.
+  const hasAccounts = (balances.data?.count ?? 0) > 0;
+  const suggestions = hasAccounts ? [BALANCE_SUGGESTION, ...SUGGESTIONS.slice(0, 3)] : SUGGESTIONS;
 
   return (
     <div className="flex gap-6">
@@ -200,9 +208,11 @@ export default function AskAI() {
           </div>
         </div>
 
+        <BalanceStrip className="mb-5 xl:hidden" />
+
         {showSuggestions && (
           <div className="mb-5 flex flex-wrap gap-2">
-            {SUGGESTIONS.map((s) => (
+            {suggestions.map((s) => (
               <button
                 key={s}
                 onClick={() => submit(s)}
@@ -271,6 +281,9 @@ export default function AskAI() {
           </div>
         </form>
       </div>
+
+      {/* Balances preview beside the chat on wide screens (a strip above it otherwise) */}
+      <BalancePanel className="hidden xl:block" />
     </div>
   );
 }

@@ -2,7 +2,7 @@
 // URLs are relative — the Vite dev server proxies /api to the FastAPI backend.
 
 import type {
-  Anomaly, ChatMessage, ChatStyle, ConversationDetail, ConversationSummary,
+  AccountBalances, Anomaly, ChatMessage, ChatStyle, ConversationDetail, ConversationSummary,
   Correction, LinkTokenResponse, MonthlyPoint, PlaidItemResult, PlaidStatus,
   PlaidSyncResult, QueryResponse, SendResult, Subscription, Summary,
   Transaction, TransactionList, UploadResult,
@@ -162,6 +162,8 @@ export const api = {
   },
 
   loadSample: () => http<UploadResult>("/api/load-sample", { method: "POST" }),
+
+  balances: () => http<AccountBalances>("/api/account/balances"),
 
   clearData: () =>
     http<{ transactions_deleted: number }>("/api/account/clear-data", { method: "POST" }),
