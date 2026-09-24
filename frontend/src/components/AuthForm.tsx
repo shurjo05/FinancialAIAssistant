@@ -34,7 +34,7 @@ function PasswordRules({ password }: { password: string }) {
       {PASSWORD_RULES.map((r) => {
         const ok = r.test(password);
         return (
-          <li key={r.label} className={cn("flex items-center gap-1.5 text-xs transition-colors", ok ? "text-up" : "text-faint")}>
+          <li key={r.label} className={cn("flex items-center gap-1.5 text-xs transition-colors", ok ? "text-up" : "text-muted")}>
             {ok ? <Check className="h-3.5 w-3.5 shrink-0" strokeWidth={2.6} /> : <Circle className="h-3 w-3 shrink-0" />}
             {r.label}
             <span className="sr-only">{ok ? "(met)" : "(not met)"}</span>
@@ -79,7 +79,7 @@ export default function AuthForm({ title, submitLabel, onSubmit, footer, isRegis
   };
 
   const field =
-    "w-full rounded-xl border border-line bg-card px-3.5 py-2.5 text-base text-text placeholder:text-faint focus:border-accent-a focus:outline-none focus:ring-2 focus:ring-accent-a/25 sm:text-sm";
+    "w-full rounded-xl border border-line bg-card px-3.5 py-2.5 text-base text-text placeholder:text-muted focus:border-accent-a focus:outline-none focus:ring-2 focus:ring-accent-a/25 sm:text-sm";
   const pwType = showPassword ? "text" : "password";
 
   return (
@@ -115,7 +115,7 @@ export default function AuthForm({ title, submitLabel, onSubmit, footer, isRegis
                 type="button"
                 onClick={() => setShowPassword((s) => !s)}
                 aria-label={showPassword ? "Hide password" : "Show password"}
-                className="absolute inset-y-0 right-0 grid w-11 place-items-center rounded-r-xl text-faint hover:text-text"
+                className="absolute inset-y-0 right-0 grid w-11 place-items-center rounded-r-xl text-muted hover:text-text"
               >
                 {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>

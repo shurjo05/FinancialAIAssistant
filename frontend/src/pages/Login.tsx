@@ -9,7 +9,7 @@ export default function Login() {
       title="Sign in"
       submitLabel="Sign in"
       onSubmit={login}
-      footer={<>No account? <Link to="/register" className="font-medium text-accent-a hover:underline">Register</Link></>}
+      footer={<>No account? <Link to="/register" className="font-medium text-accent-ink hover:underline">Register</Link></>}
     />
   );
 }

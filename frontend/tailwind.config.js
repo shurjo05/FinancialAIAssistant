@@ -15,9 +15,10 @@ export default {
         text: rgb("--text"),
         muted: rgb("--muted"),
         faint: rgb("--faint"),
-        accent: { a: rgb("--accent-a"), b: rgb("--accent-b") },
+        accent: { a: rgb("--accent-a"), b: rgb("--accent-b"), ink: rgb("--accent-ink") },
         up: rgb("--up"),
         down: rgb("--down"),
+        warn: rgb("--warn"),
         // Kept so any not-yet-reskinned view using brand-* stays on-palette.
         brand: {
           50: "#f5f0fd", 100: "#ead9fb", 500: "#a736d6",

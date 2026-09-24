@@ -36,5 +36,14 @@ def test_clear_data_is_scoped_to_the_current_user(client, auth_token):
     assert client.get("/api/transactions").json()["total"] > 0
 
 
+def test_demo_data_cannot_be_cleared(client):
+    """The demo is shared: one visitor must not be able to empty it for everyone."""
+    token = client.post("/api/auth/demo").json()["access_token"]
+    h = {"Authorization": f"Bearer {token}"}
+    before = client.get("/api/transactions", headers=h).json()["total"]
+    assert client.post("/api/account/clear-data", headers=h).status_code == 403
+    assert client.get("/api/transactions", headers=h).json()["total"] == before > 0
+
+
 def test_clear_data_requires_auth(client):
     assert client.post("/api/account/clear-data").status_code == 401
