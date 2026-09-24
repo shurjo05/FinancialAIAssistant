@@ -1,9 +1,10 @@
 """Account endpoints: balances of connected bank accounts, and clearing your own data."""
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
+from app.api.auth import DEMO_EMAIL
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.models import (
@@ -51,6 +52,10 @@ def clear_data(
     Removes uploads/transactions (CSV + Plaid), detector output, corrections,
     bank connections, and chat threads. Scoped strictly to the current user.
     """
+    if user.email == DEMO_EMAIL:
+        # Shared account: clearing it would empty the demo for every visitor.
+        raise HTTPException(status_code=403, detail="The shared demo's data can't be cleared.")
+
     tx_count = db.scalar(
         select(func.count()).select_from(Transaction).where(Transaction.user_id == user.id)
     ) or 0

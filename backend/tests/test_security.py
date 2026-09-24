@@ -16,6 +16,15 @@ def test_logout_all_revokes_existing_token(client, auth_token):
     assert client.get("/api/transactions", headers=h).status_code == 401
 
 
+def test_demo_cannot_logout_all(client):
+    """The demo is shared: one visitor must not be able to sign out every other one."""
+    first = client.post("/api/auth/demo").json()["access_token"]
+    second = client.post("/api/auth/demo").json()["access_token"]
+    r = client.post("/api/auth/logout-all", headers={"Authorization": f"Bearer {first}"})
+    assert r.status_code == 403
+    assert client.get("/api/transactions", headers={"Authorization": f"Bearer {second}"}).status_code == 200
+
+
 def test_change_password_wrong_current_rejected(client, auth_token):
     h = {"Authorization": f"Bearer {auth_token('cp1@example.com')}"}
     r = client.post(

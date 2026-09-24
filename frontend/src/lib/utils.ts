@@ -16,6 +16,22 @@ export const fmtDate = (iso: string) =>
     month: "short", day: "numeric", year: "numeric",
   });
 
+/** "Jan 1 – Jun 26, 2024" (drops the first year when both dates share it). */
+export function fmtRange(start: string, end: string) {
+  const a = new Date(start + "T00:00:00");
+  const b = new Date(end + "T00:00:00");
+  const sameYear = a.getFullYear() === b.getFullYear();
+  const first = a.toLocaleDateString("en-US", { month: "short", day: "numeric", ...(sameYear ? {} : { year: "numeric" }) });
+  return `${first} – ${fmtDate(end)}`;
+}
+
+/** "BEST BUY" / "whole foods" → "Best Buy" / "Whole Foods" for display. */
+export const titleCase = (s: string) =>
+  s.toLowerCase().replace(/(^|[\s&/-])(\p{L})/gu, (_m, sep: string, ch: string) => sep + ch.toUpperCase());
+
+/** "restaurants" → "Restaurants". */
+export const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 /** "just now" / "5 min ago" / "3 hr ago" / "Mar 15" for a server timestamp (UTC). */
 export function fmtAgo(iso: string) {
   // The API emits naive UTC timestamps; pin them to UTC before parsing.

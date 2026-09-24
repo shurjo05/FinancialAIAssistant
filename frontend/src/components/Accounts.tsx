@@ -41,15 +41,16 @@ function AccountRow({ account, compact }: { account: BankAccount; compact?: bool
       {!compact && <AccountIcon account={account} />}
       <div className="min-w-0 flex-1">
         <p className="truncate text-sm font-medium text-text">{account.name}</p>
-        <p className="truncate text-xs text-faint">
-          {[account.institution, account.mask && `••${account.mask}`].filter(Boolean).join(" ")}
+        <p className="flex min-w-0 gap-1 text-xs text-muted">
+          {account.institution && <span className="truncate">{account.institution}</span>}
+          {account.mask && <span className="shrink-0">••{account.mask}</span>}
         </p>
       </div>
       <div className="text-right">
         <p className={cn("num text-sm font-semibold", account.is_liability ? "text-down" : "text-text")}>
           {bal == null ? "—" : fmtUSD(bal)}
         </p>
-        {account.is_liability && <p className="text-[11px] text-faint">owed</p>}
+        {account.is_liability && <p className="text-[11px] text-muted">owed</p>}
       </div>
     </li>
   );
@@ -59,7 +60,7 @@ function NoAccounts({ compact }: { compact?: boolean }) {
   return (
     <p className={cn("text-sm text-muted", compact && "text-xs")}>
       No connected accounts yet.{" "}
-      <Link to="/upload" className="font-medium text-accent-a hover:underline">Connect a bank</Link>{" "}
+      <Link to="/upload" className="font-medium text-accent-ink hover:underline">Connect a bank</Link>{" "}
       to see balances here.
     </p>
   );
@@ -83,7 +84,7 @@ export function AccountsPanel() {
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <h3 className="font-display font-semibold text-muted">Accounts</h3>
+            <h2 className="font-display font-semibold text-muted">Accounts</h2>
             {b?.sample && <SampleTag />}
           </div>
           {b && b.count > 0 && (
@@ -91,7 +92,7 @@ export function AccountsPanel() {
               <p className={cn("num mt-1.5 text-3xl font-bold leading-tight", b.net_worth < 0 ? "text-down" : "text-text")}>
                 {fmtUSD(b.net_worth)}
               </p>
-              <p className="mt-0.5 text-xs text-faint">
+              <p className="mt-0.5 text-xs text-muted">
                 Net worth · {fmtUSD(b.assets)} held, {fmtUSD(b.liabilities)} owed
               </p>
             </>
@@ -101,7 +102,7 @@ export function AccountsPanel() {
           <button
             onClick={() => refresh.mutate()}
             disabled={refresh.isPending}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-line px-2.5 py-1.5 text-xs font-medium text-muted transition-colors hover:border-accent-a/40 hover:text-text disabled:opacity-50"
+            className="inline-flex min-h-10 shrink-0 items-center gap-1.5 rounded-lg border border-line px-3 text-xs font-medium text-muted transition-colors hover:border-accent-a/40 hover:text-text disabled:opacity-50"
           >
             {refresh.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCw className="h-3.5 w-3.5" />}
             {b?.as_of ? `Updated ${fmtAgo(b.as_of)}` : "Refresh"}
@@ -150,7 +151,7 @@ export function BalanceStrip({ className }: { className?: string }) {
       <button
         onClick={() => setOpen((o) => !o)}
         aria-expanded={open}
-        className="flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left"
+        className="flex min-h-12 w-full items-center gap-2.5 rounded-xl px-3.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent-a/60"
       >
         <Wallet className="h-4 w-4 shrink-0 text-accent-a" />
         <span className="min-w-0 flex-1 truncate text-sm text-muted">
@@ -159,7 +160,7 @@ export function BalanceStrip({ className }: { className?: string }) {
           <span className="hidden sm:inline"> · {b.count} account{b.count === 1 ? "" : "s"}</span>
         </span>
         {b.sample && <SampleTag />}
-        <ChevronDown className={cn("h-4 w-4 shrink-0 text-faint transition-transform", open && "rotate-180")} />
+        <ChevronDown className={cn("h-4 w-4 shrink-0 text-muted transition-transform", open && "rotate-180")} />
       </button>
       {open && (
         <ul className="divide-y divide-line-soft border-t border-line-soft px-3.5">
@@ -178,9 +179,9 @@ export function BalancePanel({ className }: { className?: string }) {
     <aside className={cn("w-64 shrink-0", className)}>
       <div className="sticky top-6 rounded-2xl border border-line bg-card p-4 shadow-card">
         <div className="flex items-center justify-between gap-2">
-          <h3 className="flex items-center gap-2 text-sm font-semibold text-muted">
+          <h2 className="flex items-center gap-2 text-sm font-semibold text-muted">
             <Wallet className="h-4 w-4 text-accent-a" /> Your accounts
-          </h3>
+          </h2>
           {b.sample && <SampleTag />}
         </div>
         {b.count === 0 ? (
@@ -188,11 +189,11 @@ export function BalancePanel({ className }: { className?: string }) {
         ) : (
           <>
             <p className="num mt-2 text-xl font-bold text-text" title={summaryLine(b)}>{fmtUSD(b.net_worth)}</p>
-            <p className="text-xs text-faint">net worth</p>
+            <p className="text-xs text-muted">net worth</p>
             <ul className="mt-2 divide-y divide-line-soft">
               {b.accounts.map((a) => <AccountRow key={a.id} account={a} compact />)}
             </ul>
-            {b.as_of && <p className="mt-2 text-[11px] text-faint">Updated {fmtAgo(b.as_of)}</p>}
+            {b.as_of && <p className="mt-2 text-[11px] text-muted">Updated {fmtAgo(b.as_of)}</p>}
           </>
         )}
       </div>

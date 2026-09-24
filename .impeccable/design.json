@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-09-23T00:00:00Z",
+  "title": "Design System: JoMoney",
+  "extensions": {
+    "colorMeta": {
+      "jo-violet": { "role": "primary", "displayName": "Jo Violet", "canonical": "rgb(122 40 201)", "tonalRamp": ["oklch(15% 0.08 303)", "oklch(25% 0.13 303)", "oklch(35% 0.18 303)", "oklch(45% 0.22 303)", "oklch(55% 0.22 303)", "oklch(68% 0.16 303)", "oklch(82% 0.09 303)", "oklch(95% 0.03 303)"] },
+      "orchid": { "role": "primary", "displayName": "Orchid", "canonical": "rgb(167 54 214)", "tonalRamp": ["oklch(15% 0.08 315)", "oklch(25% 0.13 315)", "oklch(35% 0.18 315)", "oklch(45% 0.22 315)", "oklch(56% 0.23 315)", "oklch(68% 0.17 315)", "oklch(82% 0.09 315)", "oklch(95% 0.03 315)"] },
+      "jo-violet-dark": { "role": "primary", "displayName": "Jo Violet (dark theme)", "canonical": "rgb(155 68 224)" },
+      "orchid-dark": { "role": "primary", "displayName": "Orchid (dark theme)", "canonical": "rgb(176 62 214)" },
+      "ledger-green": { "role": "tertiary", "displayName": "Ledger Green", "canonical": "rgb(18 166 107)", "tonalRamp": ["oklch(15% 0.04 160)", "oklch(25% 0.07 160)", "oklch(35% 0.1 160)", "oklch(48% 0.13 160)", "oklch(62% 0.15 160)", "oklch(74% 0.13 160)", "oklch(86% 0.08 160)", "oklch(95% 0.03 160)"] },
+      "ledger-green-dark": { "role": "tertiary", "displayName": "Ledger Green (dark theme)", "canonical": "rgb(69 224 139)" },
+      "overdraft-red": { "role": "tertiary", "displayName": "Overdraft Red", "canonical": "rgb(220 38 38)", "tonalRamp": ["oklch(15% 0.06 27)", "oklch(25% 0.1 27)", "oklch(35% 0.15 27)", "oklch(48% 0.19 27)", "oklch(58% 0.22 27)", "oklch(70% 0.16 27)", "oklch(84% 0.08 27)", "oklch(95% 0.03 27)"] },
+      "overdraft-red-dark": { "role": "tertiary", "displayName": "Overdraft Red (dark theme)", "canonical": "rgb(248 113 113)" },
+      "lavender-mist": { "role": "neutral", "displayName": "Lavender Mist", "canonical": "rgb(245 245 251)" },
+      "paper": { "role": "neutral", "displayName": "Paper", "canonical": "rgb(255 255 255)" },
+      "hairline": { "role": "neutral", "displayName": "Hairline", "canonical": "rgb(231 230 241)" },
+      "hairline-soft": { "role": "neutral", "displayName": "Hairline Soft", "canonical": "rgb(238 237 246)" },
+      "ink": { "role": "neutral", "displayName": "Ink", "canonical": "rgb(22 21 31)", "tonalRamp": ["oklch(15% 0.02 290)", "oklch(25% 0.02 290)", "oklch(35% 0.02 290)", "oklch(50% 0.025 290)", "oklch(65% 0.025 290)", "oklch(78% 0.02 290)", "oklch(90% 0.012 290)", "oklch(97% 0.006 290)"] },
+      "slate-muted": { "role": "neutral", "displayName": "Slate Muted", "canonical": "rgb(108 106 128)" },
+      "slate-faint": { "role": "neutral", "displayName": "Slate Faint", "canonical": "rgb(155 153 173)" },
+      "night": { "role": "neutral", "displayName": "Night", "canonical": "rgb(9 9 15)" },
+      "night-surface": { "role": "neutral", "displayName": "Night Surface", "canonical": "rgb(15 14 23)" },
+      "night-card": { "role": "neutral", "displayName": "Night Card", "canonical": "rgb(22 21 31)" },
+      "night-hairline": { "role": "neutral", "displayName": "Night Hairline", "canonical": "rgb(38 36 53)" },
+      "night-hairline-soft": { "role": "neutral", "displayName": "Night Hairline Soft", "canonical": "rgb(29 28 42)" },
+      "moon-ink": { "role": "neutral", "displayName": "Moon Ink", "canonical": "rgb(236 234 246)" },
+      "moon-muted": { "role": "neutral", "displayName": "Moon Muted", "canonical": "rgb(158 156 180)" },
+      "moon-faint": { "role": "neutral", "displayName": "Moon Faint", "canonical": "rgb(110 108 130)" }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Landing hero headline only." },
+      "headline": { "displayName": "Headline", "purpose": "Page titles." },
+      "title": { "displayName": "Title", "purpose": "Card and section headings." },
+      "figure": { "displayName": "Figure", "purpose": "Every money amount, via the .num class (Sora, tabular numerals)." },
+      "body": { "displayName": "Body", "purpose": "Chat answers, descriptions, table cells." },
+      "label": { "displayName": "Label", "purpose": "Chips, captions, metadata, checklist items." }
+    },
+    "shadows": [
+      { "name": "card", "value": "0 1px 2px rgb(20 19 31 / 0.04), 0 8px 24px rgb(20 19 31 / 0.05)", "purpose": "Every card, chat bubble, and the pinned chat input; ambient lift only." },
+      { "name": "pop", "value": "0 12px 40px rgb(122 40 201 / 0.20)", "purpose": "Violet under-glow for gradient elements only (primary buttons, spark, active preset)." }
+    ],
+    "motion": [
+      { "name": "state-transition", "value": "150ms cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Tailwind transition-colors default for hover and selection changes." },
+      { "name": "thinking-pulse", "value": "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite", "purpose": "Jo's thinking sparkle and skeleton loaders." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Gradient primary action; the only filled button.",
+      "html": "<button class=\"ds-btn-primary\">Try the live demo</button>",
+      "css": ".ds-btn-primary { background-image: linear-gradient(135deg, rgb(var(--accent-a, 122 40 201)), rgb(var(--accent-b, 167 54 214))); color: #fff; border: none; border-radius: 12px; padding: 10px 16px; font: 500 14px/1.4 'Instrument Sans', system-ui, sans-serif; box-shadow: 0 12px 40px rgb(122 40 201 / 0.20); cursor: pointer; transition: filter 150ms cubic-bezier(0.4,0,0.2,1); } .ds-btn-primary:hover { filter: brightness(1.1); } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 2px rgb(122 40 201 / 0.6); }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Secondary action: paper fill with a hairline border.",
+      "html": "<button class=\"ds-btn-ghost\">Create account</button>",
+      "css": ".ds-btn-ghost { background: rgb(var(--card, 255 255 255)); color: rgb(var(--text, 22 21 31)); border: 1px solid rgb(var(--line, 231 230 241)); border-radius: 12px; padding: 10px 16px; font: 500 14px/1.4 'Instrument Sans', system-ui, sans-serif; cursor: pointer; transition: border-color 150ms cubic-bezier(0.4,0,0.2,1); } .ds-btn-ghost:hover { border-color: rgb(122 40 201 / 0.4); } .ds-btn-ghost:focus-visible { outline: none; box-shadow: 0 0 0 2px rgb(122 40 201 / 0.6); }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Paper field with hairline border and violet focus ring.",
+      "html": "<input class=\"ds-input\" placeholder=\"Email\" />",
+      "css": ".ds-input { width: 100%; background: rgb(var(--card, 255 255 255)); color: rgb(var(--text, 22 21 31)); border: 1px solid rgb(var(--line, 231 230 241)); border-radius: 12px; padding: 10px 14px; font: 400 14px/1.5 'Instrument Sans', system-ui, sans-serif; } .ds-input::placeholder { color: rgb(var(--faint, 155 153 173)); } .ds-input:focus { outline: none; border-color: rgb(122 40 201); box-shadow: 0 0 0 2px rgb(122 40 201 / 0.25); }"
+    },
+    {
+      "name": "Card with Figure",
+      "kind": "card",
+      "refersTo": "card",
+      "description": "Hairline card holding one label and one tabular money figure.",
+      "html": "<div class=\"ds-card\"><p class=\"ds-card-label\">Total spending</p><p class=\"ds-card-figure\">$19,047.84</p></div>",
+      "css": ".ds-card { background: rgb(var(--card, 255 255 255)); border: 1px solid rgb(var(--line, 231 230 241)); border-radius: 16px; padding: 20px; box-shadow: 0 1px 2px rgb(20 19 31 / 0.04), 0 8px 24px rgb(20 19 31 / 0.05); } .ds-card-label { margin: 0; font: 500 14px/1.4 'Instrument Sans', system-ui, sans-serif; color: rgb(var(--muted, 108 106 128)); } .ds-card-figure { margin: 10px 0 0; font: 700 24px/1.25 Sora, system-ui, sans-serif; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; color: rgb(var(--text, 22 21 31)); }"
+    },
+    {
+      "name": "Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "Pill label; outlined variant marks sample data.",
+      "html": "<span class=\"ds-chip\">Sample</span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; border: 1px solid rgb(var(--line, 231 230 241)); border-radius: 9999px; padding: 2px 8px; font: 500 11px/1.4 'Instrument Sans', system-ui, sans-serif; color: rgb(var(--muted, 108 106 128)); }"
+    },
+    {
+      "name": "Nav Item",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "Sidebar link; active state is a 14% violet tint with a violet icon.",
+      "html": "<nav class=\"ds-nav\"><a class=\"ds-nav-item ds-active\" href=\"#\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><path d=\"m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z\"/></svg>Ask Jo</a><a class=\"ds-nav-item\" href=\"#\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"9\" rx=\"1\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"5\" rx=\"1\"/><rect x=\"14\" y=\"12\" width=\"7\" height=\"9\" rx=\"1\"/><rect x=\"3\" y=\"16\" width=\"7\" height=\"5\" rx=\"1\"/></svg>Overview</a></nav>",
+      "css": ".ds-nav { display: flex; flex-direction: column; gap: 4px; width: 216px; } .ds-nav-item { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; font: 500 14px/1.4 'Instrument Sans', system-ui, sans-serif; color: rgb(var(--muted, 108 106 128)); text-decoration: none; transition: background 150ms, color 150ms; } .ds-nav-item:hover { background: rgb(var(--line-soft, 238 237 246)); color: rgb(var(--text, 22 21 31)); } .ds-nav-item.ds-active { background: rgb(122 40 201 / 0.14); color: rgb(var(--text, 22 21 31)); } .ds-nav-item.ds-active svg { color: rgb(122 40 201); } .ds-nav-item:focus-visible { outline: none; box-shadow: 0 0 0 2px rgb(122 40 201 / 0.6); }"
+    },
+    {
+      "name": "Chat Exchange",
+      "kind": "custom",
+      "refersTo": "chat-bubble-jo",
+      "description": "Signature component: gradient user bubble, paper Jo bubble with spark avatar and a tabular figure.",
+      "html": "<div class=\"ds-chat\"><div class=\"ds-me\">How much did I spend on restaurants in March?</div><div class=\"ds-jo-row\"><span class=\"ds-spark\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"#fff\" stroke-width=\"2.4\"><path d=\"m12 3-1.9 5.8a2 2 0 0 1-1.3 1.3L3 12l5.8 1.9a2 2 0 0 1 1.3 1.3L12 21l1.9-5.8a2 2 0 0 1 1.3-1.3L21 12l-5.8-1.9a2 2 0 0 1-1.3-1.3Z\"/></svg></span><div class=\"ds-jo\">You spent <b class=\"ds-num\">$412.68</b> on restaurants in March across 14 transactions.</div></div></div>",
+      "css": ".ds-chat { display: flex; flex-direction: column; gap: 20px; max-width: 420px; font: 400 14px/1.625 'Instrument Sans', system-ui, sans-serif; } .ds-me { align-self: flex-end; max-width: 80%; background-image: linear-gradient(135deg, rgb(122 40 201), rgb(167 54 214)); color: #fff; border-radius: 16px 16px 6px 16px; padding: 10px 16px; } .ds-jo-row { display: flex; gap: 10px; align-items: flex-start; } .ds-spark { display: grid; place-items: center; width: 28px; height: 28px; flex-shrink: 0; border-radius: 7px; background-image: linear-gradient(135deg, rgb(122 40 201), rgb(167 54 214)); box-shadow: 0 12px 40px rgb(122 40 201 / 0.20); } .ds-jo { max-width: 80%; background: rgb(var(--card, 255 255 255)); color: rgb(var(--text, 22 21 31)); border: 1px solid rgb(var(--line, 231 230 241)); border-radius: 6px 16px 16px 16px; padding: 12px 16px; box-shadow: 0 1px 2px rgb(20 19 31 / 0.04), 0 8px 24px rgb(20 19 31 / 0.05); } .ds-num { font-family: Sora, system-ui, sans-serif; font-variant-numeric: tabular-nums; letter-spacing: -0.02em; font-weight: 600; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Talking Ledger",
+    "overview": "JoMoney should feel like a precise ledger that happens to talk back. The ledger part is quiet: near-white lavender or near-black surfaces, hairline borders, generous rounding, and money set in a tabular display face so every figure lines up like an instrument reading. The talking part is Jo, and Jo is the only thing allowed to be loud. The violet-to-orchid gradient marks intelligence and primary action, and almost nothing else.\n\nThe system is dark-first but fully symmetric: every token has a light and a dark value, switched by data-theme on the root, with prefers-color-scheme honored until the user picks. Density is moderate. Screens are built from soft-cornered cards on a tinted background, with one clear figure per card and supporting text in muted slate. The only atmospheric moment is the landing and auth backdrop, a gradient that falls from white (or black) into violet.\n\nSoft and confident: controls are rounded and tactile, borders do the structural work, and shadows stay ambient. Nothing is glassy, noisy, or animated for its own sake; motion is limited to state transitions and a pulsing \"thinking\" indicator.",
+    "keyCharacteristics": [
+      "Violet/orchid gradient reserved for Jo, the logo spark, and primary actions.",
+      "Money always in Sora with tabular numerals.",
+      "Hairline-bordered cards (16px radius) on a lavender-tinted or near-black ground.",
+      "Green for money in, red for money out/owed, never used decoratively.",
+      "Symmetric light and dark themes from one set of RGB-channel tokens."
+    ],
+    "rules": [
+      { "name": "The Spent-On-Intelligence Rule", "body": "The violet/orchid gradient appears only where Jo or a primary action lives: the logo spark, Jo's avatar, user chat bubbles, primary buttons, the active voice preset. If a gradient appears anywhere else, it is wrong.", "section": "colors" },
+      { "name": "The Semantic Money Rule", "body": "Green and red mean money direction or state (in/out, owed, met/unmet, error). They are never decoration, category colors, or brand accents.", "section": "colors" },
+      { "name": "The Instrument Figure Rule", "body": "Money is always Sora with tabular numerals (.num), even inside a sentence. Proportional digits on a money figure is a bug.", "section": "typography" },
+      { "name": "The Border-Does-The-Work Rule", "body": "Containers are defined by a 1px hairline, not by shadow. The Card shadow is barely there; if a surface needs a heavier shadow to separate, the tones are wrong.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do keep the gradient to Jo, the spark, and primary actions (The Spent-On-Intelligence Rule).",
+      "Do set every money figure with .num (Sora, tabular numerals).",
+      "Do define containers with a 1px hairline and the soft Card shadow, on a background one tone away.",
+      "Do define every new color as RGB channels on :root with a matching dark value in both the prefers-color-scheme block and [data-theme=\"dark\"].",
+      "Do mark synthetic data plainly (the outlined \"Sample\" chip) wherever sample balances or data appear."
+    ],
+    "donts": [
+      "Don't use green or red for anything but money direction, state, or errors.",
+      "Don't use Slate Faint / Moon Faint for text a user must read; it's below 4.5:1 contrast on cards. Captions and placeholders only.",
+      "Don't introduce gradient text, glass or blur effects, or heavy shadows. The app uses none; the .grad-text utility is defined but unused, and the landing chat preview's backdrop blur and heavy shadow are the one exception, up for review in Phase 23.",
+      "Don't add a new accent hue. Category colors in charts are the only multi-hue palette, and they stay inside charts and category badges."
+    ]
+  }
+}

@@ -271,6 +271,22 @@ def monthly_trend(db: Session, user_id: int) -> list[dict]:
     ]
 
 
+_NON_DISCRETIONARY = ("rent", "utilities", "transfers", "fees", "income")
+
+
+def _top_discretionary_merchant(db: Session, user_id: int) -> list[dict]:
+    """The single biggest merchant by spend, excluding rent/bills/transfers."""
+    row = db.execute(
+        select(Transaction.merchant_normalized, func.sum(Transaction.amount))
+        .where(*_expense_filters(user_id, None, None),
+               Transaction.category.not_in(_NON_DISCRETIONARY))
+        .group_by(Transaction.merchant_normalized)
+        .order_by(func.sum(Transaction.amount).desc())
+        .limit(1)
+    ).first()
+    return [{"merchant": row[0], "total": round(row[1], 2)}] if row else []
+
+
 def summary(db: Session, user_id: int) -> dict:
     """Headline dashboard stats for one user."""
     total_spending = get_total(db, user_id, "spending")["total"]
@@ -278,7 +294,9 @@ def summary(db: Session, user_id: int) -> dict:
     net = round(total_income - total_spending, 2)
     savings_rate = round(net / total_income * 100, 1) if total_income else 0.0
 
-    top = top_merchants(db, user_id, 1)["merchants"]
+    # "Top merchant" is an insight about discretionary spend: rent and bills
+    # would always win and tell the user nothing new.
+    top = _top_discretionary_merchant(db, user_id)
     largest = db.scalars(
         select(Transaction)
         .where(Transaction.user_id == user_id, Transaction.amount > 0)

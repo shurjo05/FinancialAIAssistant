@@ -109,6 +109,10 @@ def logout_all(
     user: User = Depends(get_current_user),
 ) -> dict:
     """Revoke every outstanding token for this user (log out all devices)."""
+    if user.email == DEMO_EMAIL:
+        # The demo account is shared: revoking its tokens would sign out every
+        # visitor currently trying the demo.
+        raise HTTPException(status_code=403, detail="The shared demo can't sign out other sessions.")
     user.token_version += 1
     db.commit()
     return {"detail": "All sessions have been logged out."}

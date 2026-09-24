@@ -14,8 +14,10 @@
   --faint: 155 153 173;
   --accent-a: 122 40 201;
   --accent-b: 167 54 214;
+  --accent-ink: 122 40 201;
   --up: 18 166 107;
   --down: 220 38 38;
+  --warn: 180 83 9;
   color-scheme: light;
 }
 
@@ -31,9 +33,11 @@
     --muted: 158 156 180;
     --faint: 110 108 130;
     --accent-a: 155 68 224;
-    --accent-b: 194 79 232;
+    --accent-b: 176 62 214;
+    --accent-ink: 196 150 255;
     --up: 69 224 139;
     --down: 248 113 113;
+    --warn: 251 191 36;
     color-scheme: dark;
   }
 }
@@ -49,9 +53,11 @@
   --muted: 158 156 180;
   --faint: 110 108 130;
   --accent-a: 155 68 224;
-  --accent-b: 194 79 232;
+  --accent-b: 176 62 214;
+  --accent-ink: 196 150 255;
   --up: 69 224 139;
   --down: 248 113 113;
+  --warn: 251 191 36;
   color-scheme: dark;
 }
 
@@ -100,6 +106,17 @@ body {
       linear-gradient(180deg, #060509 0%, #09060f 26%, #1b0930 66%, #380f58 100%);
   }
 }
+
+/* Browser surfaces carry the palette too */
+::selection { background: rgb(var(--accent-a) / 0.28); }
+:root { accent-color: rgb(var(--accent-a)); caret-color: rgb(var(--accent-a)); }
+* { scrollbar-color: rgb(var(--line)) transparent; scrollbar-width: thin; }
+html { -webkit-tap-highlight-color: transparent; }
+
+/* Bottom sheet / overlay entrances (motion-safe only) */
+@keyframes sheet-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
